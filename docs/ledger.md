@@ -8,7 +8,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 
 | Commit | Change |
 | --- | --- |
-| (pending) | Extracted into its own repo (2026-10-11). Union of two copies: `bevy_action_map`'s `crates/bevy_remote_driver` at chunk 196 (Bevy main; `driver.locate` returns physical pixels, since `CursorMoved` takes a `physical_position`), and Panoply's (`bin` targets in `run.py`; `message` and `exits` steps). `run.py` runs from the project's directory, not from inside it. |
+| (pending) | Extracted into its own repo (2026-10-11). Union of two copies: `bevy_action_map`'s `crates/bevy_remote_driver` at chunk 196 (Bevy main; `driver.locate` returns physical pixels, since `CursorMoved` takes a `physical_position`), and Panoply's (`bin` targets in `run.py`; `message` and `exits` steps). `run.py` runs from the project's directory, not from inside it. Verified at Bevy `c9c21c2b`: clippy clean, 12 unit tests, `plans/testbed/smoke.json` (17 steps) and `typing.py` (9) pass. |
+| (pending) | User docs: `docs/writing-plans.md` (DR7.4) is the entry point for writing and running plans; `class Driver`'s docstring covers selectors, timeouts and the JSON form; `src/lib.rs` documents the `bevy_remote` feature screenshots need. `design.md` drops its step tables and §9's instructions for pointers. |
 
 ## Next
 
@@ -73,10 +74,12 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 - **X1** What the driver becomes. The proposal (proposal.md, posted by the author as a gist on
   2026-09-26) says which server methods Bevy should take. What Bevy declines stays here; the
   client stays here either way. *Gate:* the proposal answered.
-- **X2** A plan step for an app's own methods, or a Python helper over `call`. Both extension
-  points exist: BRP registration in Rust, and a Python plan is a program (DD4.2) that can import a
-  helper. A step registry would be a third mechanism where two already reach. *Gate:* a second plan
-  whose raw `call` steps are unreadable.
+- **X2** Calling an app's own server methods from a plan. Apps can register methods (DD6), but the
+  client has no step for them. First a generic `call` step, which polls while it carries an
+  expected `value` (a read) and invokes once without one (a write), matching with `expect`'s
+  subset; it is planned in `bevy_action_map`'s chunk 149, with that crate's `remote` feature.
+  Then, if raw `call` steps read badly, a Python helper over it or a step of the app's own.
+  *Gate:* a plan that needs one of an app's methods, or chunk 149 landing there (port it here).
 - **X3** A virtual pad that says which pad it is. The connection event carries `name`,
   `vendor_id` and `product_id`, and the client fills all three with a pad no vendor table knows,
   so every machine sees the same fallback. Exposing them is three optional arguments. *Gate:* a

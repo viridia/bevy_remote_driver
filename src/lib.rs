@@ -31,6 +31,12 @@
 //! When it is active, the plugin adds [`RemotePlugin`] and [`RemoteHttpPlugin`] itself, so do not
 //! add them as well. It also adds [`FrameTimeDiagnosticsPlugin`] unless the app already has it,
 //! which is how a test counts frames. If your app adds that plugin too, add it before this one.
+//!
+//! # Screenshots
+//!
+//! Enable the `bevy` crate's `bevy_remote` feature in the app as well. The driver depends only on
+//! the `bevy_remote` subcrate, and without the umbrella's feature `Image` has no serialization
+//! registered, so a screenshot step panics the app instead of failing the step.
 
 #![forbid(unsafe_code)]
 

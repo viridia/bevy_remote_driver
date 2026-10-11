@@ -78,6 +78,30 @@ def subset(expected, found):
 
 
 class Driver:
+    """A running app, driven step by step. Each public method marked as a step is one plan step.
+
+    Selectors. A step that takes a `selector` finds entities by a path of `Name`s, given as a
+    string split on `/` (`"Settings/Audio/Volume"`) or as a list (`["Settings", "Audio",
+    "Volume"]`, for a name that contains `/`). The last name must match an entity's `Name` exactly;
+    each earlier one must match one of its ancestors, in order from the root down, at any depth, so
+    unnamed entities in between are skipped. A step that needs one entity fails on none or several,
+    and reports the full paths of what it found.
+
+    Timeouts. `present`, `absent` and `expect` wait for their condition rather than look once. A
+    `timeout` is a dict with `frames`, `seconds` or both, and ends at whichever comes first; a limit
+    left out does not apply. The default is 300 frames and 10 seconds. `{"frames": 0}` looks once.
+
+    Components and messages are named by full type path, as BRP names them, such as
+    `bevy_ui::widget::text::Text`. `expect` compares only the keys its value gives, at any depth.
+
+    Each input lands on its own frame: a step that sends input first waits for the frame after the
+    previous input.
+
+    JSON plans. A step is an object with one key naming the method, whose value is the first
+    argument; the other keys are the remaining arguments by name:
+    `{"present": "Menu", "ready": true}` is `driver.present("Menu", ready=True)`.
+    """
+
     def __init__(self, port, out_dir):
         self.host = "127.0.0.1"
         self.port = port

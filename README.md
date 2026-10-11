@@ -13,9 +13,7 @@ Drive a running Bevy app from outside, for end-to-end tests, over the Bevy Remot
 python3 ../bevy_remote_driver/client/run.py plans/smoke.py
 ```
 
-A plan is a Python module (`BIN` or `EXAMPLE`, optionally `PACKAGE` and `FEATURES`, and
-`run(driver)`) or a JSON list of steps. See [docs/design.md](docs/design.md), section 9, for
-writing one.
+To write and run plans, read [docs/writing-plans.md](docs/writing-plans.md).
 
 ## Status
 

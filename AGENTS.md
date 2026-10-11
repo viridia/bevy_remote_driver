@@ -25,6 +25,10 @@ is meant for Bevy itself (`docs/proposal.md`); once Bevy takes it, this becomes 
 - Bevy is main, named by branch (see `Cargo.toml`). Read APIs in the local checkout `../bevy`
   at the commit `Cargo.lock` holds, and its `_release-content/migration-guides/`, rather than
   guessing.
+- User docs have one home each: a step's behaviour in its docstring in `client/driver.py`
+  (selectors, timeouts and the JSON form in `class Driver`'s), app setup in `src/lib.rs`'s crate
+  docs, the workflow in `docs/writing-plans.md`. A change updates that home, and nothing else
+  repeats it.
 - Users: Panoply and `arbor_day` depend on this repo by git. `bevy_action_map` keeps a copy of
   its own (`crates/bevy_remote_driver`), as a published crate whose tests others may run; a fix
   here that it needs is copied across by hand.

@@ -148,36 +148,14 @@ example that does not exist.
 }
 ```
 
-The three checks wait rather than look once, because what follows an input can land a frame or more
-later: a menu that animates out, a value set by the next system to run.
+The step reference is the client's docstrings: `class Driver` in `client/driver.py` for selectors,
+timeouts (DR3.4) and the JSON form, and each step method for itself. User-facing instructions are
+[writing-plans.md](writing-plans.md) (DR7.4). What follows is the reasoning behind the vocabulary.
 
-| Step | Passes when | Fails when |
-| --- | --- | --- |
-| `present` | the selector matches; with `"ready": true`, a match also has `SceneReady` | the timeout is reached |
-| `absent` | the selector matches nothing | the timeout is reached |
-| `expect` | a component on the one selected entity has the given value | the timeout is reached |
-
-A check's `timeout` takes `frames`, `seconds` or both, and ends at whichever is reached first; a
-limit it leaves out does not apply. It defaults to 300 frames and 10 seconds (DR3.4). A timeout of
-`{ "frames": 0 }` looks once, so checking that something is still gone later is a `frames` step
-followed by an `absent` that looks once.
-
-The other steps:
-
-| Step | Does |
-| --- | --- |
-| `click` | locate, move the cursor, press, release, each on its own frame |
-| `key` | press, one frame, release; `"hold": n` holds for `n` frames |
-| `press`, `release` | one half of a key, for chords and holds that span other steps |
-| `type` | a string, a press and a release per character, with Shift around a shifted one |
-| `pad` | a virtual gamepad's button, pressed and released; with `"value": v`, a control left at `v` (DD5.3) |
-| `frames` | let `n` frames pass |
-| `seconds` | let `n` seconds pass |
-| `screenshot` | save a PNG of the primary window under the given name |
-
-A plan's step is an object with one key naming the step, whose value is the step's first argument;
-its other keys are the rest, by name. `key`, `press` and `release` take `logical_key` and `text` for
-a key the US table lacks.
+The three checks (`present`, `absent`, `expect`) wait rather than look once, because what follows an
+input can land a frame or more later: a menu that animates out, a value set by the next system to
+run. A timeout of `{ "frames": 0 }` looks once, so checking that something is still gone later is a
+`frames` step followed by an `absent` that looks once.
 
 `pad` has no `hold` because it does not need one: a control that carries a value is left at it, and
 returned to `0.0` by a second step, which is what spans frames for a pad. A key has no value, so
@@ -276,8 +254,8 @@ plugged into the machine the plan runs on.
 
 ## 6. The mapper's half
 
-An app's crates can add server methods of their own, and the driver reaches them through the
-client's `call`. `bevy_action_map` is the example: a `remote` feature (its requirement R25) registers
+An app's crates can add server methods of their own. The client has no step for calling them yet
+(the ledger's X2). `bevy_action_map` is the example: a `remote` feature (its requirement R25) registers
 two methods, so the driver never depends on the mapper (DR1.2):
 
 - `action_map.dump` returns what `inspect::dump` produces: each context, its instances, and each
@@ -358,41 +336,7 @@ That is the expected end state, and why the plugin is kept this small.
 
 ## 9. Writing a test
 
-For an agent writing a test: the instructions DR7.4 requires. `plans/testbed/` holds a JSON plan and
-a Python plan that between them use every step but `pad`, which the testbed binds nothing to;
-`bevy_action_map`'s `plans/disasteroids/pad.py` is that one. Paths below are relative to the
-project under test, where its plans live in `plans/`; Panoply's are an example.
-
-1. **Find what to select.** Read the example's scenes for `#Name`s. If what the test needs has none,
-   add one where the entity is declared, rather than selecting by component or position.
-2. **Write a Python plan** under `plans/`, with the steps of DD4.1 as methods on the driver.
-   Start with a `present` on the screen's root with `ready=True`. Set `BIN` or `EXAMPLE` for the
-   target, `PACKAGE` if it is not the root crate's, and `FEATURES` if it declares
-   `required-features`. Write JSON only for a plan that is a flat list of steps and reads as one
-   (DD4.2).
-3. **Put the app into the state the test assumes, rather than assuming it.** An app that saves
-   anything is a different app on its second run, and the settings file outlives the process: a plan
-   that rebinds a row and leaves finds that row already rebound next time. Reach a known state
-   through the app's own controls — `bevy_action_map`'s `plans/disasteroids/rebind.py` bookends
-   itself with Reset and Confirm — and end there too, so a run leaves the developer's own saved settings as it found them.
-   A plan that fails halfway still leaves them dirty, which is why the opening matters more than the
-   closing.
-4. **Name a component by its full type path**, such as `bevy_ui::widget::text::Text`, as BRP does.
-   `expect` compares only the keys its value gives, so give the fields the test is about and no
-   others.
-5. **Wait for a condition, then frames, then seconds.** A covered window runs slower, so a margin in
-   seconds for the app's own logic passes in front and fails behind the editor. `seconds` is for
-   assets loaded after a scene is ready, such as prompt glyphs, and nothing else.
-6. **Run it with the one command, and nothing else:**
-   `python3 <path to bevy_remote_driver>/client/run.py <plan>`, from the Cargo workspace that
-   holds the target. Every
-   approval prompt brings the editor forward and covers the window, so a run split across several
-   commands tests a different app from the one that runs in one. Do not start the app in one command
-   and drive it in another.
-7. **Read a failure from the report first**, then the log, then the screenshots, in that order. The
-   report names the step, and the log says what the app did. An exit status of 2 is the plan or the
-   build, not the app.
-8. **A key released unexpectedly is focus.** If someone clicked another window during a hold, the
-   mapper released the key. Rerun it before looking for a bug.
-9. **Leave the screenshots for the person reading the run.** A screenshot shows that something is
-   drawn. It does not replace an `expect` or an `absent`, which are what make a test fail.
+The instructions DR7.4 requires are [writing-plans.md](writing-plans.md), with the client's
+docstrings as the step reference. `plans/testbed/` holds a JSON plan and a Python plan that between
+them use every step but `pad`, which the testbed binds nothing to; `bevy_action_map`'s
+`plans/disasteroids/pad.py` is that one.
