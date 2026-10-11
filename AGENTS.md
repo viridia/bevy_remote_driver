@@ -3,7 +3,7 @@
 `bevy_remote_driver` drives a running Bevy app from outside, over the Bevy Remote Protocol, for
 end-to-end tests: a Rust plugin the app adds (inert unless `BEVY_REMOTE_DRIVER_PORT` is set) and
 a Python client that builds the app, launches it, runs a plan's steps, and reports. The Rust half
-is meant for Bevy itself (`docs/proposal.md`); once Bevy takes it, this becomes a Python project.
+is meant for Bevy itself (`docs/upstream.md`); once Bevy takes it, this becomes a Python project.
 
 ## Orient
 

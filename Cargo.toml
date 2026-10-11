@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/viridia/bevy_remote_driver"
 # Rust and a Python client together do not ship as a crate. The Rust half is meant for Bevy itself
-# (docs/proposal.md); what Bevy declines stays here, used by git dependency.
+# (docs/upstream.md); what Bevy declines stays here, used by git dependency.
 publish = false
 
 [lints.rust]

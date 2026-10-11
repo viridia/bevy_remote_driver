@@ -1,7 +1,7 @@
 # Requirements: `bevy_remote_driver`
 
-> `MUST` / `SHOULD` / `MAY` per RFC 2119. Requirements are numbered `DR<section>.<n>`, and sections
-> `DR1`–`DR7`, so a reference to one is never mistaken for one of `bevy_action_map`'s `R` numbers.
+> `MUST` / `SHOULD` / `MAY` per RFC 2119. Requirements are numbered `DR<section>.<n>`, in sections
+> `DR1`–`DR7`.
 
 A driver for a running Bevy app: it finds entities, sends input to them, waits for the app to
 settle, and checks what it shows. Its purpose is automated testing of an app with a window, by a
@@ -20,8 +20,8 @@ to maintain.
 
 - **DR1.1 (MUST)** The driver is built on BRP. It adds methods through `RemoteMethods` and adds no
   transport of its own.
-- **DR1.2 (MUST)** The driver does not depend on `bevy_action_map`, or on any other crate that an
-  app under test happens to use.
+- **DR1.2 (MUST)** The driver does not depend on any crate that an app under test happens to use,
+  such as an input mapper.
 - **DR1.3 (MUST)** A capability BRP already provides is used as BRP provides it, rather than being
   wrapped in a driver method.
 - **DR1.4 (MUST)** An app under test needs nothing beyond adding the driver's plugin and giving

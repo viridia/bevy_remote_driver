@@ -74,7 +74,7 @@ screenshot: /path/to/project/target/remote-driver/testbed/panel/menu.png
 
 ## Reading further
 
-1. [docs/proposal.md](docs/proposal.md): what Bevy itself could take, so that a client in any
+1. [docs/upstream.md](docs/upstream.md): what Bevy itself could take, so that a client in any
    language needs no plugin.
 2. [docs/requirements.md](docs/requirements.md) and [docs/design.md](docs/design.md): what the
    driver must do, and how it does it.
