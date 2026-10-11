@@ -46,7 +46,8 @@ The same steps can be written as JSON when a test is a flat list:
 }
 ```
 
-On the app's side, the only change is a `Name` on what a test refers to (`#Start` in a BSN scene).
+On the app's side: add the plugin, enable `bevy/bevy_remote`, and give a `Name` to what a test
+refers to (`#Start` in a BSN scene).
 
 One command builds the app, launches it, runs the plan and closes it:
 
@@ -91,11 +92,8 @@ Early. It tests the examples of [`bevy_action_map`](https://github.com/viridia/b
 and the game Panoply, and has run only on macOS. It builds against Bevy main. Discussion of
 end-to-end testing in Bevy is in [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
 
-Not published to crates.io; to use it, depend on it by git:
-
-```toml
-bevy_remote_driver = { git = "https://github.com/viridia/bevy_remote_driver" }
-```
+Not published to crates.io; [docs/writing-plans.md](docs/writing-plans.md) covers depending on it
+by git.
 
 ## License
 

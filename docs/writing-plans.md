@@ -10,10 +10,15 @@ Reference:
 
 ## Setup
 
-1. Depend on the driver by git, naming Bevy the same way the driver does (`branch = "main"`), or
-   Cargo builds two Bevys:
-   `bevy_remote_driver = { git = "https://github.com/viridia/bevy_remote_driver" }`.
-2. Add the plugin and enable `bevy/bevy_remote`, as `src/lib.rs` describes.
+1. Depend on the driver by git, and name Bevy exactly as the driver does. Any other form, such as
+   a `rev` or a release, builds a second Bevy.
+
+   ```toml
+   bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["bevy_remote"] }
+   bevy_remote_driver = { git = "https://github.com/viridia/bevy_remote_driver" }
+   ```
+
+2. Add the plugin, as `src/lib.rs` describes.
 3. Check out this repository next to the project (`../bevy_remote_driver`), for the client.
 
 ## Writing a plan
@@ -24,14 +29,14 @@ Reference:
    (`Name::new`); compute them from an identity the screen holds (a key, an index), not from the
    text it draws, which may be translated.
 2. **Write a Python plan** in the project's `plans/`. Set `BIN` or `EXAMPLE` for the target to
-   launch, `PACKAGE` if it is not the root package's, and `FEATURES` if it declares
-   `required-features`; without them the run fails with "the build produced no example named …".
-   Define `run(driver)`, calling the steps as methods.
-   Start with `present` on the screen's root, with `ready=True`. Give a step whose point is not
-   obvious a comment, and a sequence you repeat a named function.
+   launch, and `PACKAGE` if it is not the root package's. Set `FEATURES` if the target declares
+   `required-features`; without them, cargo skips the target and the run fails with "the build
+   produced no example named …". Define `run(driver)`, calling the steps as methods. Start with
+   `present` on the screen's root, with `ready=True`. Give a step whose point is not obvious a
+   comment, and a sequence you repeat a named function.
 3. **Write JSON only for a flat list of steps that reads as one.** It names `bin` or `example`
-   and lists `steps`. `plans/testbed/smoke.json` is the example; `typing.py` beside it
-   is a Python one.
+   and lists `steps`. `plans/testbed/smoke.json` is an example, and `panel.py` and `typing.py`
+   beside it are Python ones.
 4. **Put the app into the state the test assumes, rather than assuming it.** An app that saves
    anything is a different app on its second run: a plan that changes a setting finds it already
    changed next time. Reach a known state through the app's own controls at the start, and end
@@ -39,7 +44,7 @@ Reference:
    counts.
 5. **Wait for a condition, then frames, then seconds.** A covered window runs at about half speed,
    so a margin in seconds for the app's own logic passes in front and fails behind another window.
-   `seconds` is for assets loaded after a scene is ready, such as glyphs, and nothing else.
+   Use `seconds` only for assets loaded after a scene is ready, such as icons.
 6. **Assert with checks, not screenshots.** `expect`, `absent` and `present` are what make a test
    fail. A screenshot shows that something is drawn, for the person reading the run.
 

@@ -28,8 +28,8 @@ all input, goes through BRP's built-in methods (DR1.3), and the client is where 
 work happens.
 
 `RemoteDriverPlugin` adds `RemotePlugin` and `RemoteHttpPlugin` itself, and only when the
-environment variable `BEVY_REMOTE_DRIVER_PORT` is set, on that port. Without it the plugin adds
-nothing, so a build containing it opens no port when started normally (DR1.5). A value that is not a
+environment variable `BEVY_REMOTE_DRIVER_PORT` is set, on that port. Without it the plugin is
+inert, so a build containing it opens no port when started normally (DR1.5). A value that is not a
 port panics at startup, since running without the port would leave the client timing out with no
 reason given. An app does not add either remote plugin itself, since Bevy refuses a plugin added
 twice.
@@ -66,8 +66,8 @@ The last name matches an entity's `Name` exactly; each earlier name must match o
 ancestors, in order from the root down, at any depth. `["Settings", "Jump", "Rebind"]` is an entity
 named `Rebind` with an ancestor `Jump` that itself has an ancestor `Settings`.
 
-An array needs no escaping, since a `Name` may contain any character, and leaves the server nothing
-to parse. The client also takes a path as a string, `"Settings/Jump/Rebind"`, and splits it on `/`
+An array needs no escaping, since a `Name` may contain any character, and the server needs no
+parser. The client also takes a path as a string, `"Settings/Jump/Rebind"`, and splits it on `/`
 before sending it; a name containing `/` is written in the array form. Reports print a path joined
 with `/`.
 
@@ -87,7 +87,7 @@ wait that starts late (DR3.2). A `present` step with `ready=True` selects, then 
 `world.get_components` whether each match has `SceneReady`.
 
 `Ready` covers the assets the scene itself names. An asset something in the scene requests after it
-spawns, such as an icon a system loads, is not among them, and nothing signals when it has loaded. A
+spawns, such as an icon a system loads, is not among them, and no event marks when it has loaded. A
 plan waits for those with `seconds` (DR3.6). Loading runs on IO threads rather than per frame, so
 time is the right measure there, where the app's own logic is measured in frames.
 
@@ -119,8 +119,8 @@ Playwright worth having is its browser half, which cannot reach a native window,
 be a Node toolchain wrapped around the same BRP calls.
 
 Who writes a test decides what its client should be. A probe written on the spot, by a developer or
-an agent, and then thrown away, wants no project to set up: that is this client, Python with nothing
-beyond the standard library (DR7.3), which also runs the JSON form. An acceptance test in CI wants
+an agent, and then thrown away, wants no project to set up: that is this client, Python needing
+only the standard library (DR7.3), which also runs the JSON form. An acceptance test in CI wants
 the project's own language and its test runner: a Rust client on `BrpClient`
 ([bevy#25837](https://github.com/bevyengine/bevy/pull/25837)), each test an ordinary test. The rules
 in DD4.5 are what any client follows, so a JSON plan runs the same on either.
@@ -128,8 +128,8 @@ in DD4.5 are what any client follows, so a JSON plan runs the same on either.
 ### 4.1 A plan
 
 A plan names the target to launch and lists the steps to run against it. The vocabulary is the same
-whichever way it is written: as a Python program, which is the default (DD4.2), or as JSON, which the
-client reads with the standard library and nothing compiled (DR7.1, DR7.3):
+whichever way it is written: as a Python program, which is the default (DD4.2), or as JSON, which
+the client reads with only the standard library and no build step (DR7.1, DR7.3):
 
 ```json
 {
@@ -177,7 +177,7 @@ neither. `plans/testbed/typing.py` types one character at a time and checks the 
 loop that JSON would spell out character by character.
 
 JSON stays for a test that is a flat list of steps and reads as one, and for DR7.1's own sake: it
-runs with nothing compiled and nothing imported, which `plans/testbed/smoke.json` is kept to show.
+runs without compiling or importing anything, which `plans/testbed/smoke.json` is kept to show.
 
 ### 4.3 A run
 
@@ -294,14 +294,14 @@ text may be translated, and two rows can show the same label.
 An app adds `RemoteDriverPlugin` in its `main`, and enables the `bevy` crate's `bevy_remote`
 feature. The feature is not redundant with the driver's own dependency on the `bevy_remote`
 subcrate: without it an app still builds and still answers BRP, but `Image` has no serialization
-registered, and the screenshot step panics the app inside `bevy_remote` rather than failing the step.
-The plugin is inert unless the port variable is set.
+registered, and the screenshot step panics the app inside `bevy_remote` rather than failing the
+step. The plugin is inert unless the port variable is set.
 
 ## 8. Where each piece ends up
 
 | Piece | Home | Why |
 | --- | --- | --- |
-| Selection by name path | upstream, a filter on `world.query` | any app's test wants it, and it needs nothing but `Name` and `ChildOf` |
+| Selection by name path | upstream, a filter on `world.query` | any app's test wants it, and it needs only `Name` and `ChildOf` |
 | Readiness as state | upstream, `bevy_scene` | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
 | Clicks, keys and text | the client now; the plugin next, as methods built from Bevy's types; then perhaps upstream | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
@@ -319,4 +319,4 @@ at most, and this project is its client.
 The instructions DR7.4 requires are [writing-plans.md](writing-plans.md), with the client's
 docstrings as the step reference. `plans/testbed/` holds a JSON plan (`smoke.json`) and two Python
 plans (`typing.py`, and `panel.py`, the README's example), which between them use every step but
-`pad`, `message` and `exits`, which the testbed has nothing to bind.
+`pad`, `message` and `exits`, which the testbed has no use for.

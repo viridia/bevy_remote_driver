@@ -24,8 +24,8 @@ to maintain.
   such as an input mapper.
 - **DR1.3 (MUST)** A capability BRP already provides is used as BRP provides it, rather than being
   wrapped in a driver method.
-- **DR1.4 (MUST)** An app under test needs nothing beyond adding the driver's plugin and giving
-  stable ids to the entities a test names (DR2).
+- **DR1.4 (MUST)** An app under test needs only to add the driver's plugin and give stable ids to
+  the entities a test names (DR2).
 - **DR1.5 (MUST)** The plugin opens no port unless the app is started for testing. A build that
   contains the plugin behaves as though it did not when started normally.
 
@@ -87,7 +87,7 @@ scale factor and writing three messages. Every test that clicks something repeat
 test. A run that needs attention partway through fails because of that.
 
 - **DR6.1 (MUST)** One command builds and launches the app, runs a test, collects its results and
-  closes the app. Nothing is asked of the person running it until it finishes.
+  closes the app. It asks the person running it for no input until it finishes.
 - **DR6.2 (MUST)** A run closes the app when it passes, fails or is interrupted, and does not leave
   the app running.
 - **DR6.3 (MUST)** A failure report names the step, what the step expected and what it found, and

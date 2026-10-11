@@ -1,4 +1,4 @@
-"""The `Driver`: one method per plan step, each a handful of BRP calls (DD4, DD5)."""
+"""The `Driver`: one method per plan step, each a handful of BRP calls."""
 
 import functools
 import http.client
@@ -78,7 +78,7 @@ def subset(expected, found):
 
 
 class Driver:
-    """A running app, driven step by step. Each public method marked as a step is one plan step.
+    """A running app, driven step by step. Each method decorated with `@step` is a plan step.
 
     Selectors. A step that takes a `selector` finds entities by a path of `Name`s, given as a
     string split on `/` (`"Settings/Audio/Volume"`) or as a list (`["Settings", "Audio",
@@ -186,24 +186,29 @@ class Driver:
 
     @step
     def key(self, code, hold=1, logical_key=None, text=None):
-        """Presses a key, and releases it `hold` frames later."""
+        """Presses a key, and releases it `hold` frames later.
+
+        `code` is a `KeyCode` variant name, such as `"Escape"` or `"KeyA"`. `logical_key` and
+        `text` default to what a US keyboard sends for it; give them for another layout, or for a
+        key the client does not know.
+        """
         self._key(code, "Pressed", logical_key, text)
         self._until(self._sent_at + hold)
         self._key(code, "Released", logical_key, text)
 
     @step
     def press(self, code, logical_key=None, text=None):
-        """Presses a key and leaves it held."""
+        """Presses a key and leaves it held. Takes the same arguments as `key`."""
         self._key(code, "Pressed", logical_key, text)
 
     @step
     def release(self, code, logical_key=None, text=None):
-        """Releases a held key."""
+        """Releases a held key. Takes the same arguments as `key`."""
         self._key(code, "Released", logical_key, text)
 
     @step
     def message(self, type_path, value):
-        """Writes one reflected message of the app's own, such as a teleport, on its own frame."""
+        """Writes one of the app's own reflected messages, by type path, on its own frame."""
         self._send(type_path, value)
 
     @step

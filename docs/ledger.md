@@ -12,6 +12,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | User docs: `docs/writing-plans.md` (DR7.4) is the entry point for writing and running plans; `class Driver`'s docstring covers selectors, timeouts and the JSON form; `src/lib.rs` documents the `bevy_remote` feature screenshots need. `design.md` drops its step tables and §9's instructions for pointers. |
 | (pending) | README for reviewers (Bevy maintainers weighing it as a model): a plan in Python and JSON, a passing and a failing run's real output, a reading order, status. `plans/testbed/panel.py` is the README's plan, verified passing. |
 | (pending) | Docs stand alone. `design.md`'s examples are the testbed's; DD2's focus note describes Bevy's own keyboard input; DD6 and DD7 are general, with `bevy_action_map` one example; new DD4.5 (rules every client follows) and clients in DD4; DD8 matches the plan for clicks and keys. `proposal.md` becomes `upstream.md`: landed, proposed (`name_path`, readiness as state), under consideration (input as server methods). `requirements.md` no longer names `bevy_action_map`. |
+| (pending) | Prose polish pass, to `bevy_action_map`'s house style: "nothing" as a subject rephrased, user docs free of citations and internal references, `upstream.md`'s proposals marked as such, the README's app-side summary and setup made accurate (setup now lives only in `writing-plans.md`, with the Bevy line), `key`'s docstring says what `code`, `logical_key` and `text` take. |
 
 ## Next
 
@@ -49,11 +50,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    - Not doing: a per-run `app_name`, which would need the app to read an env var.
    - Users: Panoply can then drop its separate settings identity under the driver (its D15).
    - Verified by a plan run twice, with the real settings file's modification time unchanged.
-5. **A prose polish pass**: the user docs (`docs/writing-plans.md`, `class Driver`'s and the steps'
-   docstrings, `src/lib.rs`'s crate docs, the README) read only as a plan writer, and the reviewer
-   docs (`upstream.md`, `design.md`, `requirements.md`) read as a Bevy maintainer weighing the
-   model. Cut anything about the docs themselves or why they say what they say, and tighten.
-   Follow the prose advice in `bevy_action_map`'s `docs/guidelines.md`.
 
 ## Decisions
 

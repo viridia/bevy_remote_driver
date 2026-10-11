@@ -34,9 +34,8 @@
 //!
 //! # Screenshots
 //!
-//! Enable the `bevy` crate's `bevy_remote` feature in the app as well. The driver depends only on
-//! the `bevy_remote` subcrate, and without the umbrella's feature `Image` has no serialization
-//! registered, so a screenshot step panics the app instead of failing the step.
+//! Enable the `bevy` crate's `bevy_remote` feature in the app as well. Without it, `Image` has no
+//! serialization registered, and a screenshot step panics the app instead of failing the step.
 
 #![forbid(unsafe_code)]
 

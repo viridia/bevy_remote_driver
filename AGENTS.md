@@ -29,6 +29,9 @@ is meant for Bevy itself (`docs/upstream.md`); once Bevy takes it, this becomes 
   (selectors, timeouts and the JSON form in `class Driver`'s), app setup in `src/lib.rs`'s crate
   docs, the workflow in `docs/writing-plans.md`. A change updates that home, and nothing else
   repeats it.
+- Prose follows the "House style" section of `../bevy_action_map/CLAUDE.md`. A user-facing doc
+  (README, `writing-plans.md`, docstrings, `src/lib.rs`'s crate docs) gets a separate polish pass
+  once its content is settled.
 - Users: Panoply and `arbor_day` depend on this repo by git. `bevy_action_map` keeps a copy of
   its own (`crates/bevy_remote_driver`), as a published crate whose tests others may run; a fix
   here that it needs is copied across by hand.
