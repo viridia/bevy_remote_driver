@@ -13,6 +13,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | README for reviewers (Bevy maintainers weighing it as a model): a plan in Python and JSON, a passing and a failing run's real output, a reading order, status. `plans/testbed/panel.py` is the README's plan, verified passing. |
 | (pending) | Docs stand alone. `design.md`'s examples are the testbed's; DD2's focus note describes Bevy's own keyboard input; DD6 and DD7 are general, with `bevy_action_map` one example; new DD4.5 (rules every client follows) and clients in DD4; DD8 matches the plan for clicks and keys. `proposal.md` becomes `upstream.md`: landed, proposed (`name_path`, readiness as state), under consideration (input as server methods). `requirements.md` no longer names `bevy_action_map`. |
 | (pending) | Prose polish pass, to `bevy_action_map`'s house style: "nothing" as a subject rephrased, user docs free of citations and internal references, `upstream.md`'s proposals marked as such, the README's app-side summary and setup made accurate (setup now lives only in `writing-plans.md`, with the Bevy line), `key`'s docstring says what `code`, `logical_key` and `text` take. |
+| (pending) | The two proposals filed as Bevy tickets by the author: `name_path` as bevy#26121, readiness as state as bevy#26120. `upstream.md` links them in place of the full text, and drops input as server methods until items 1 and 2 prototype it. DD8 cites the tickets. |
 
 ## Next
 
@@ -26,8 +27,9 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
      call.
    - The events are built from Bevy's types, so a change to their shape is a compile error.
    - `driver.locate` stays, for a plan that wants a node's position without clicking it.
-   - Update DD5.1 and DD8's row for clicks to describe the method. [upstream.md](upstream.md)
-     lists it under consideration; move it to proposed if it works out.
+   - Update DD5.1 and DD8's row for clicks to describe the method. Once items 1 and 2 have proved
+     out, consider a Bevy ticket for input as server methods, and list it in
+     [upstream.md](upstream.md).
    - Not doing: keys and text (item 2); gamepads.
    - Verified by a headless `App` test that one call yields the three events on three frames, and
      `plans/testbed/smoke.json` end to end.
@@ -70,8 +72,9 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 
 ## Deferred
 
-- **X1** What the driver becomes. [upstream.md](upstream.md) says what Bevy could take. What Bevy
-  declines stays here; the client stays here either way. *Gate:* bevy#25894's answer to it.
+- **X1** What the driver becomes. [upstream.md](upstream.md) says what Bevy could take: `name_path`
+  (bevy#26121) and readiness as state (bevy#26120). What Bevy takes leaves the plugin; what it
+  declines stays here; the client stays here either way. *Gate:* either ticket decided.
 - **X2** Calling an app's own server methods from a plan. Apps can register methods (DD6), but the
   client has no step for them. First a generic `call` step, which polls while it carries an
   expected `value` (a read) and invokes once without one (a write), matching with `expect`'s

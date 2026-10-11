@@ -301,8 +301,8 @@ step. The plugin is inert unless the port variable is set.
 
 | Piece | Home | Why |
 | --- | --- | --- |
-| Selection by name path | upstream, a filter on `world.query` | any app's test wants it, and it needs only `Name` and `ChildOf` |
-| Readiness as state | upstream, `bevy_scene` | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
+| Selection by name path | upstream, a filter on `world.query` (bevy#26121) | any app's test wants it, and it needs only `Name` and `ChildOf` |
+| Readiness as state | upstream, `bevy_scene` (bevy#26120) | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
 | Clicks, keys and text | the client now; the plugin next, as methods built from Bevy's types; then perhaps upstream | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
 | Gamepads | the client | the messages are reflected and writable (bevy#25904) |
