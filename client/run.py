@@ -107,11 +107,14 @@ def free_port():
         return probe.getsockname()[1]
 
 
-def environment(binary, package_dir, port):
+def environment(binary, package_dir, port, settings_dir):
     env = dict(os.environ)
     env["BEVY_REMOTE_DRIVER_PORT"] = str(port)
     # Where Bevy looks for `assets/`, as under `cargo run`.
     env["CARGO_MANIFEST_DIR"] = str(package_dir)
+    # Bevy's `preferences_dir` honours it only when absolute, which a path under Cargo's target
+    # directory is (DR6.5).
+    env["BEVY_SETTINGS_DIR"] = str(settings_dir)
     if sys.platform == "darwin":
         # `dynamic_linking` leaves the binary without an rpath to the toolchain's libstd, or to the
         # Bevy dylib next to it.
@@ -174,6 +177,7 @@ def main(argv):
     shutil.rmtree(out_dir, ignore_errors=True)
     out_dir.mkdir(parents=True)
     log_path = out_dir / "app.log"
+    settings_dir = out_dir / "settings"
 
     report = [f"plan: {plan_path}"]
     status = 0
@@ -185,7 +189,7 @@ def main(argv):
             app = subprocess.Popen(
                 [binary],
                 cwd=package_dir,
-                env=environment(binary, package_dir, port),
+                env=environment(binary, package_dir, port, settings_dir),
                 stdout=log,
                 stderr=subprocess.STDOUT,
             )

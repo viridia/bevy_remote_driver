@@ -14,6 +14,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | Docs stand alone. `design.md`'s examples are the testbed's; DD2's focus note describes Bevy's own keyboard input; DD6 and DD7 are general, with `bevy_action_map` one example; new DD4.5 (rules every client follows) and clients in DD4; DD8 matches the plan for clicks and keys. `proposal.md` becomes `upstream.md`: landed, proposed (`name_path`, readiness as state), under consideration (input as server methods). `requirements.md` no longer names `bevy_action_map`. |
 | (pending) | Prose polish pass, to `bevy_action_map`'s house style: "nothing" as a subject rephrased, user docs free of citations and internal references, `upstream.md`'s proposals marked as such, the README's app-side summary and setup made accurate (setup now lives only in `writing-plans.md`, with the Bevy line), `key`'s docstring says what `code`, `logical_key` and `text` take. |
 | (pending) | The two proposals filed as Bevy tickets by the author: `name_path` as bevy#26121, readiness as state as bevy#26120. `upstream.md` links them in place of the full text, and drops input as server methods until items 1 and 2 prototype it. DD8 cites the tickets. |
+| (pending) | A run isolated from the developer's saved settings (new DR6.5): `run.py` sets `BEVY_SETTINGS_DIR` to `settings/` in the run's output directory, which is emptied each run. Whether an app wrote there is not checked or reported: only a plan about settings cares, and X5 is its step. DD4.3 and `writing-plans.md` (rule 4, the run's output) say so. Testbed plans pass unchanged (it saves no settings); the first app to save there is `arbor_day`'s settings chunk (its C2). |
 
 ## Next
 
@@ -43,15 +44,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    `frame_count` as `driver.diagnostics` does (DD3.4). The client switches to it and the method
    goes. `FrameTimeDiagnosticsPlugin` is still the driver's to add, since it records the count and
    is not in `DefaultPlugins`. Verified by any plan end to end, since every wait reads the count.
-4. **A run isolated from what the developer has saved.** A plan that changes settings writes the
-   developer's real settings file, and one that fails halfway leaves it dirty. Past bevy#25902,
-   `preferences_dir` honours an absolute `BEVY_SETTINGS_DIR` on every platform. `environment()` in
-   `run.py` sets it to a directory under the run's own output.
-   - The run checks the directory was written: a wrong path or variable fails silently, and the
-     plan passes while reading the real file.
-   - Not doing: a per-run `app_name`, which would need the app to read an env var.
-   - Users: Panoply can then drop its separate settings identity under the driver (its D15).
-   - Verified by a plan run twice, with the real settings file's modification time unchanged.
 
 ## Decisions
 
@@ -89,6 +81,11 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   connects it on first use; a second is another entity and a `pad` step that says which, and a
   disconnect is one more message. *Gate:* a plan driving two players, or one whose subject is a
   pad going away.
+- **X5** Client methods for testing saved settings, on `Driver` beside the other steps: one that
+  returns a settings file from the run's `settings/` parsed, and one that compares a key's value
+  as `expect` does for a component. They read the file the app wrote, so a plan calls them after
+  the app has saved (on exit, or once its deferred save has run). Python's `tomllib` (3.11 and
+  later) parses TOML, so D5 holds. *Gate:* a plan whose subject is what an app saves.
 
 ## Notes
 

@@ -189,7 +189,9 @@ the target, is the one command (DR6.1). It:
    and its package's directory;
 2. picks a free port, and starts the binary with `BEVY_REMOTE_DRIVER_PORT` set, its output going to
    a log file. `CARGO_MANIFEST_DIR` is set to the package's directory, where Bevy looks for
-   `assets/` as it would under `cargo run`. On macOS `DYLD_FALLBACK_LIBRARY_PATH` names the
+   `assets/` as it would under `cargo run`. `BEVY_SETTINGS_DIR` is set to `settings/` in the run's
+   output directory, so `bevy_settings` reads and writes there instead of the developer's own
+   settings, starting empty on every run (DR6.5). On macOS `DYLD_FALLBACK_LIBRARY_PATH` names the
    toolchain's libstd and the Bevy dylib, which `dynamic_linking` needs;
 3. polls until the app answers a query for its primary window, which every key step names;
 4. runs the steps;
@@ -198,7 +200,7 @@ the target, is the one command (DR6.1). It:
 
 Everything a run produces goes to `remote-driver/<target>/<plan name>/` under Cargo's target
 directory (from `cargo metadata`, so `CARGO_TARGET_DIR` is respected), emptied first: the log, the
-screenshots and `report.txt`. The report is also printed. A failure gives the step's number and
+screenshots, the app's saved settings and `report.txt`. The report is also printed. A failure gives the step's number and
 text, what it expected, what it found, whether the app had exited, and those paths (DR6.3). The exit
 status is 0 on a pass, 1 on a failure and 2 when the plan could not run.
 

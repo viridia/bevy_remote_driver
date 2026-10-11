@@ -93,6 +93,8 @@ test. A run that needs attention partway through fails because of that.
 - **DR6.3 (MUST)** A failure report names the step, what the step expected and what it found, and
   gives the path of the app's log and of every screenshot taken.
 - **DR6.4 (MUST)** Two runs on one machine can use different ports.
+- **DR6.5 (MUST)** A run neither reads nor writes the settings the developer has saved for the app:
+  each run starts from none.
 
 ## 7. Tests and the client
 

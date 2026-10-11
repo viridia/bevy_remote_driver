@@ -37,11 +37,11 @@ Reference:
 3. **Write JSON only for a flat list of steps that reads as one.** It names `bin` or `example`
    and lists `steps`. `plans/testbed/smoke.json` is an example, and `panel.py` and `typing.py`
    beside it are Python ones.
-4. **Put the app into the state the test assumes, rather than assuming it.** An app that saves
-   anything is a different app on its second run: a plan that changes a setting finds it already
-   changed next time. Reach a known state through the app's own controls at the start, and end
-   there too. A plan that fails halfway leaves its changes behind, so the start is the one that
-   counts.
+4. **Put the app into the state the test assumes, rather than assuming it.** Settings the app
+   saves with `bevy_settings` start empty on every run, and your own saved settings are left
+   alone. Anything else the app saves, such as files it writes, makes it a different app on its
+   second run. Reach a known state through the app's own controls at the start, and end there
+   too. A plan that fails halfway leaves its changes behind, so the start is the one that counts.
 5. **Wait for a condition, then frames, then seconds.** A covered window runs at about half speed,
    so a margin in seconds for the app's own logic passes in front and fails behind another window.
    Use `seconds` only for assets loaded after a scene is ready, such as icons.
@@ -64,7 +64,9 @@ prompt, covers the app and changes its timing.
 Screenshot steps bring the app's window to the front, taking focus from whatever had it.
 
 Output goes to `remote-driver/<target>/<plan>/` under Cargo's target directory (usually
-`target/`), emptied at the start of each run: `report.txt`, `app.log`, and the screenshots.
+`target/`), emptied at the start of each run: `report.txt`, `app.log`, the screenshots, and
+`settings/`, where the app's `bevy_settings` files go for the run (Bevy main reads
+`BEVY_SETTINGS_DIR`; 0.20 does not).
 
 ## Reading a failure
 
