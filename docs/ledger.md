@@ -10,6 +10,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | --- | --- |
 | (pending) | Extracted into its own repo (2026-10-11). Union of two copies: `bevy_action_map`'s `crates/bevy_remote_driver` at chunk 196 (Bevy main; `driver.locate` returns physical pixels, since `CursorMoved` takes a `physical_position`), and Panoply's (`bin` targets in `run.py`; `message` and `exits` steps). `run.py` runs from the project's directory, not from inside it. Verified at Bevy `c9c21c2b`: clippy clean, 12 unit tests, `plans/testbed/smoke.json` (17 steps) and `typing.py` (9) pass. |
 | (pending) | User docs: `docs/writing-plans.md` (DR7.4) is the entry point for writing and running plans; `class Driver`'s docstring covers selectors, timeouts and the JSON form; `src/lib.rs` documents the `bevy_remote` feature screenshots need. `design.md` drops its step tables and §9's instructions for pointers. |
+| (pending) | README for reviewers (Bevy maintainers weighing it as a model): a plan in Python and JSON, a passing and a failing run's real output, a reading order, status. `plans/testbed/panel.py` is the README's plan, verified passing. |
 
 ## Next
 
@@ -50,7 +51,23 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 5. **Make the docs stand alone.** `design.md` was written inside `bevy_action_map` and still
    leans on its examples (`minimal`, `disasteroids`) and its remote methods (DD6, DD7). Rewrite
    the worked examples against `examples/testbed.rs`, keep `bevy_action_map` as one example of an
-   app adding its own methods, and move what only concerns that crate back to it.
+   app adding its own methods, and move what only concerns that crate back to it. Rename
+   `docs/proposal.md` to `docs/upstream.md` and narrow it to what this project asks Bevy to take
+   (bevy#25894): a `name_path` filter on `world.query` (its JSON shape; whether a query returns
+   each match's full path is open), `bevy_scene` leaving a reflected marker on each `Ready` entity
+   (perhaps opt-in), what has already landed (bevy#25824, bevy#25890, bevy#25904), and, once item 1
+   decides it, clicks and keys as server methods (the proposal said clicks need none; item 1
+   reverses that). The rest of the proposal moves into `design.md`: the rules every client follows
+   (one input per frame; logic in frames, loading in seconds; a screenshot brings its window
+   forward first; keys carry `logical_key` and `text`; the virtual pad) as one section, and
+   clients (a Rust one on `BrpClient`, bevy#25837, for CI; standard-library Python for probes;
+   Bevy shipping neither) in DD4. Update references: `Cargo.toml`'s comment, AGENTS.md, the
+   README, DD8, D1, X1, item 1.
+6. **A prose polish pass on the user docs**: `docs/writing-plans.md`, `class Driver`'s and the
+   steps' docstrings, `src/lib.rs`'s crate docs, the README. Read only as a plan writer: cut
+   anything about the docs themselves or why they say what they say, and tighten. Follow the prose
+   advice in `bevy_action_map`'s `docs/guidelines.md`. After item 5, so the content is settled
+   first.
 
 ## Decisions
 
