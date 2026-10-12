@@ -47,6 +47,10 @@ Reference:
    Use `seconds` only for assets loaded after a scene is ready, such as icons.
 6. **Assert with checks, not screenshots.** `expect`, `absent` and `present` are what make a test
    fail. A screenshot shows that something is drawn, for the person reading the run.
+7. **Match a range where an exact value would only restate the app's arithmetic.** In an `expect`
+   value, `Between(low, high)` (`from driver import Between`) matches any number in that range,
+   both ends included, so a plan checks a count's order of magnitude without breaking on every
+   change to how it is computed.
 
 ## Running a plan
 

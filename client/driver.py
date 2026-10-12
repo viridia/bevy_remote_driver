@@ -72,12 +72,33 @@ def shown(matches):
 
 
 def subset(expected, found):
-    """Whether `found` has every key `expected` names, with the same value, at every depth."""
+    """Whether `found` has every key `expected` names, with the same value, at every depth. A
+    matcher such as `Between` in `expected` matches by its own test."""
     if isinstance(expected, dict):
         return isinstance(found, dict) and all(
             key in found and subset(value, found[key]) for key, value in expected.items()
         )
     return expected == found
+
+
+class Between:
+    """In an `expect` value, matches a number from `low` to `high`, both included:
+    `{"triangles": Between(100, 1000)}`."""
+
+    def __init__(self, low, high):
+        self.low, self.high = low, high
+
+    def __eq__(self, found):
+        number = isinstance(found, (int, float)) and not isinstance(found, bool)
+        return number and self.low <= found <= self.high
+
+    def __repr__(self):
+        return f"Between({self.low}, {self.high})"
+
+
+def described(value):
+    """`value` as JSON for a message, with any matcher shown as itself."""
+    return json.dumps(value, default=repr)
 
 
 class Driver:
@@ -166,7 +187,7 @@ class Driver:
             found = result["components"][component]
             return subset(value, found), json.dumps(found)
 
-        self._wait(check, f"{component} on {selector} to be {json.dumps(value)}", timeout)
+        self._wait(check, f"{component} on {selector} to be {described(value)}", timeout)
 
     @step
     def click(self, selector):
