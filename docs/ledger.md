@@ -16,6 +16,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | The two proposals filed as Bevy tickets by the author: `name_path` as bevy#26121, readiness as state as bevy#26120. `upstream.md` links them in place of the full text, and drops input as server methods until items 1 and 2 prototype it. DD8 cites the tickets. |
 | (pending) | A run isolated from the developer's saved settings (new DR6.5): `run.py` sets `BEVY_SETTINGS_DIR` to `settings/` in the run's output directory, which is emptied each run. Whether an app wrote there is not checked or reported: only a plan about settings cares, and X5 is its step. DD4.3 and `writing-plans.md` (rule 4, the run's output) say so. Testbed plans pass unchanged (it saves no settings); the first app to save there is `arbor_day`'s settings chunk (its C2). |
 | (pending) | A click scrolls its node into view (DD3.3): `driver.locate` moves the nearest hiding scrolled ancestor's `ScrollPosition` and answers `{ scrolled: true }`; the client's `click` waits two frames and asks again, up to 8 times. `bevy_math` moves to dependencies. First user: `arbor_day`'s C16, whose panel outgrew the window. Verified: clippy clean, 13 unit tests (one new), testbed `smoke.json` (17), `typing.py` (9), `panel.py` (8); `arbor_day`'s three plans pass against this checkout. |
+| (pending) | The plan's location picks the workspace built (D3): `run.py` runs cargo in the plan's directory, falling back to the working directory for a plan outside any workspace. `writing-plans.md` (Running a plan) and DD4.3 say so. Not copied to `bevy_action_map` (D4): its plans run inside its own workspace, where the two agree. Verified from Panoply's directory with absolute plan paths: testbed `smoke.json` (17) and `typing.py` (9), and `arbor_day`'s four plans, each building its own workspace. |
 
 ## Next
 
@@ -56,9 +57,10 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 - **D2** Bevy is main, named by `git` and `branch = "main"`, the commit held by `Cargo.lock`. Every
   repo using the driver names Bevy the same way, since Cargo treats a branch and a rev as different
   sources and would build two Bevys. Bump all users together.
-- **D3** `run.py` runs from the Cargo workspace that holds the target, not from inside it: cargo
-  builds there, and output goes under `cargo metadata`'s `target_directory`, which respects
-  `CARGO_TARGET_DIR`. A plan names a `bin` or an `example`, exactly one.
+- **D3** `run.py` runs cargo in the plan's directory, so the workspace that holds the plan is the
+  one built, wherever the command is run from; a plan with no `Cargo.toml` at or above it builds
+  the working directory's. Output goes under `cargo metadata`'s `target_directory`, which respects `CARGO_TARGET_DIR`. A plan
+  names a `bin` or an `example`, exactly one.
 - **D4** `bevy_action_map` keeps its own copy (`crates/bevy_remote_driver`), since it is a published
   crate whose tests others may want to run without a second repo. This repo is the canonical copy;
   a fix that crate needs is copied across by hand, and the reverse.

@@ -50,8 +50,6 @@ Reference:
 
 ## Running a plan
 
-From the Cargo workspace that holds the target:
-
 ```sh
 python3 ../bevy_remote_driver/client/run.py plans/<plan>.py
 ```
@@ -60,6 +58,9 @@ It builds the target, launches it with the driver's port set, runs the steps, cl
 prints a report. Always run it as this one command; do not start the app in one command and drive
 it in another. Anything that brings another window forward in between, such as an approval
 prompt, covers the app and changes its timing.
+
+The workspace built is the one that holds the plan, so the command works from any directory, given
+the plan's path from there. A plan outside any Cargo workspace builds the one you are in.
 
 Screenshot steps bring the app's window to the front, taking focus from whatever had it.
 

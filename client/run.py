@@ -2,9 +2,10 @@
 
     python3 <path to bevy_remote_driver>/client/run.py <plan.json | plan.py>
 
-Run it from the Cargo workspace that holds the target. A JSON plan names its `bin` or its
-`example`, optionally its `package`, and its `steps`. A Python plan sets `BIN` or `EXAMPLE`,
-optionally `PACKAGE`, and defines `run(driver)`.
+The workspace built is the one that holds the plan, from any working directory; a plan outside
+any Cargo workspace builds the working directory's. A JSON plan names its `bin` or its `example`,
+optionally its `package`, and its `steps`. A Python plan sets `BIN` or `EXAMPLE`, optionally
+`PACKAGE`, and defines `run(driver)`.
 """
 
 import importlib.util
@@ -29,15 +30,25 @@ class PlanError(Exception):
     pass
 
 
-def target_dir():
-    """Cargo's target directory for the workspace run from, so `CARGO_TARGET_DIR` is respected."""
+def cargo_dir(plan_path):
+    """Where cargo runs: the plan's directory, if a `Cargo.toml` is at or above it, otherwise the
+    working directory."""
+    start = plan_path.resolve().parent
+    if any((folder / "Cargo.toml").is_file() for folder in (start, *start.parents)):
+        return start
+    return Path.cwd()
+
+
+def target_dir(cwd):
+    """Cargo's target directory for the workspace at `cwd`, so `CARGO_TARGET_DIR` is respected."""
     result = subprocess.run(
         ["cargo", "metadata", "--format-version=1", "--no-deps"],
         stdout=subprocess.PIPE,
         text=True,
+        cwd=cwd,
     )
     if result.returncode != 0:
-        raise PlanError("`cargo metadata` failed; run from the Cargo workspace holding the target")
+        raise PlanError(f"`cargo metadata` failed in {cwd}")
     return Path(json.loads(result.stdout)["target_directory"])
 
 
@@ -76,8 +87,9 @@ def load(plan_path):
     return target, plan.get("package"), plan.get("features"), run
 
 
-def build(target, package, features):
-    """Builds the target, and returns its binary and its package's directory."""
+def build(target, package, features, cwd):
+    """Builds the target in the workspace at `cwd`, and returns its binary and its package's
+    directory."""
     kind, name = target
     command = ["cargo", "build", f"--{kind}", name, "--message-format=json-render-diagnostics"]
     if package:
@@ -86,9 +98,9 @@ def build(target, package, features):
     # leaving these out ends at "the build produced no example named …" below.
     if features:
         command += ["--features", ",".join(features)]
-    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
+    result = subprocess.run(command, stdout=subprocess.PIPE, text=True, cwd=cwd)
     if result.returncode != 0:
-        raise PlanError(f"`{' '.join(command)}` failed")
+        raise PlanError(f"`{' '.join(command)}` failed in {cwd}")
     for line in result.stdout.splitlines():
         message = json.loads(line)
         built = message.get("target", {})
@@ -168,9 +180,10 @@ def main(argv):
         print(__doc__.strip(), file=sys.stderr)
         return 2
     plan_path = Path(argv[1])
+    cwd = cargo_dir(plan_path)
     try:
         target, package, features, run = load(plan_path)
-        out_dir = target_dir() / "remote-driver" / target[1] / plan_path.stem
+        out_dir = target_dir(cwd) / "remote-driver" / target[1] / plan_path.stem
     except PlanError as error:
         print(f"could not run: {error}", file=sys.stderr)
         return 2
@@ -183,7 +196,7 @@ def main(argv):
     status = 0
     driver = None
     try:
-        binary, package_dir = build(target, package, features)
+        binary, package_dir = build(target, package, features, cwd)
         port = free_port()
         with open(log_path, "wb") as log:
             app = subprocess.Popen(

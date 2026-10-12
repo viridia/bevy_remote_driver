@@ -189,12 +189,13 @@ runs without compiling or importing anything, which `plans/testbed/smoke.json` i
 
 ### 4.3 A run
 
-`python3 <path to bevy_remote_driver>/client/run.py <plan>`, run from the Cargo workspace that holds
-the target, is the one command (DR6.1). It:
+`python3 <path to bevy_remote_driver>/client/run.py <plan>` is the one command (DR6.1). It:
 
-1. builds the target with `cargo build --bin` or `--example`, adding `-p` and `--features` where the
-   plan names them, and fails fast on a build error. Cargo's JSON messages give the binary's path
-   and its package's directory;
+1. builds the target in the Cargo workspace that holds the plan, running cargo in the plan's
+   directory (in the working directory, for a plan outside any workspace), with
+   `cargo build --bin` or `--example`, adding `-p` and `--features` where the plan names them, and
+   fails fast on a build error. Cargo's JSON messages give the binary's path and its package's
+   directory;
 2. picks a free port, and starts the binary with `BEVY_REMOTE_DRIVER_PORT` set, its output going to
    a log file. `CARGO_MANIFEST_DIR` is set to the package's directory, where Bevy looks for
    `assets/` as it would under `cargo run`. `BEVY_SETTINGS_DIR` is set to `settings/` in the run's
