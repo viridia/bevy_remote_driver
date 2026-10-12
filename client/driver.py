@@ -13,6 +13,9 @@ import keys
 DEFAULT_TIMEOUT = {"frames": 300, "seconds": 10}
 # How often a wait asks again. A round trip is about a millisecond, and a frame at least eight.
 POLL = 0.005
+# How many times a click may scroll before giving up: one per nested scrolled ancestor, and more if
+# layout keeps moving the node.
+SCROLL_TRIES = 8
 
 WINDOW = "bevy_window::window::Window"
 PRIMARY_WINDOW = "bevy_window::window::PrimaryWindow"
@@ -167,11 +170,9 @@ class Driver:
 
     @step
     def click(self, selector):
-        """Clicks the centre of a UI node, with the left button."""
-        try:
-            where = self._call("driver.locate", {"path": path_of(selector)})
-        except BrpError as err:
-            raise StepFailed(f"{selector} to be one UI node", shown(err.data or [])) from None
+        """Clicks the centre of a UI node, with the left button, first scrolling it into view if a
+        scrolled ancestor hides it."""
+        where = self._locate(selector)
         window = where["window"]
         # Picking needs to know where the cursor is before the press arrives.
         self._send(
@@ -319,6 +320,19 @@ class Driver:
 
     def _select(self, selector):
         return self._call("driver.select", {"path": path_of(selector)})
+
+    def _locate(self, selector):
+        """Where a UI node is drawn. Each call scrolls at most one hiding ancestor, and layout
+        moves the node on a later frame, so ask again until it is in view."""
+        for _ in range(SCROLL_TRIES):
+            try:
+                where = self._call("driver.locate", {"path": path_of(selector)})
+            except BrpError as err:
+                raise StepFailed(f"{selector} to be one UI node", shown(err.data or [])) from None
+            if not where.get("scrolled"):
+                return where
+            self._until(self.frame() + 2)
+        raise StepFailed(f"{selector} to scroll into view", f"{SCROLL_TRIES} scrolls")
 
     def _has(self, entity, component):
         result = self._call(

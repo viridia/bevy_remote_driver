@@ -15,6 +15,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | Prose polish pass, to `bevy_action_map`'s house style: "nothing" as a subject rephrased, user docs free of citations and internal references, `upstream.md`'s proposals marked as such, the README's app-side summary and setup made accurate (setup now lives only in `writing-plans.md`, with the Bevy line), `key`'s docstring says what `code`, `logical_key` and `text` take. |
 | (pending) | The two proposals filed as Bevy tickets by the author: `name_path` as bevy#26121, readiness as state as bevy#26120. `upstream.md` links them in place of the full text, and drops input as server methods until items 1 and 2 prototype it. DD8 cites the tickets. |
 | (pending) | A run isolated from the developer's saved settings (new DR6.5): `run.py` sets `BEVY_SETTINGS_DIR` to `settings/` in the run's output directory, which is emptied each run. Whether an app wrote there is not checked or reported: only a plan about settings cares, and X5 is its step. DD4.3 and `writing-plans.md` (rule 4, the run's output) say so. Testbed plans pass unchanged (it saves no settings); the first app to save there is `arbor_day`'s settings chunk (its C2). |
+| (pending) | A click scrolls its node into view (DD3.3): `driver.locate` moves the nearest hiding scrolled ancestor's `ScrollPosition` and answers `{ scrolled: true }`; the client's `click` waits two frames and asks again, up to 8 times. `bevy_math` moves to dependencies. First user: `arbor_day`'s C16, whose panel outgrew the window. Verified: clippy clean, 13 unit tests (one new), testbed `smoke.json` (17), `typing.py` (9), `panel.py` (8); `arbor_day`'s three plans pass against this checkout. |
 
 ## Next
 
@@ -28,6 +29,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
      call.
    - The events are built from Bevy's types, so a change to their shape is a compile error.
    - `driver.locate` stays, for a plan that wants a node's position without clicking it.
+   - `driver.click` scrolls the node into view first, as `driver.locate` does now (DD3.3), and
+     queues the events only once it is in view, so the client's retry goes.
    - Update DD5.1 and DD8's row for clicks to describe the method. Once items 1 and 2 have proved
      out, consider a Bevy ticket for input as server methods, and list it in
      [upstream.md](upstream.md).
@@ -86,6 +89,12 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   as `expect` does for a component. They read the file the app wrote, so a plan calls them after
   the app has saved (on exit, or once its deferred save has run). Python's `tomllib` (3.11 and
   later) parses TOML, so D5 holds. *Gate:* a plan whose subject is what an app saves.
+
+- **X6** Scroll into view with Bevy's `ScrollIntoView` in place of the driver's own `ScrollPosition`
+  arithmetic (DD3.3), triggering the event and comparing ancestors' positions to tell whether
+  anything moved. Today the event acts only on the nearest `ScrollArea`, which many games'
+  scrolled nodes are not. A ticket (to file) asks for it to act on every `overflow: scroll`
+  ancestor, and perhaps to move into `bevy_ui`. *Gate:* that change in the Bevy we build against.
 
 ## Notes
 

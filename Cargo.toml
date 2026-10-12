@@ -25,6 +25,7 @@ bevy_app = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_camera = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_diagnostic = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_ecs = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
+bevy_math = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_reflect = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_remote = { git = "https://github.com/bevyengine/bevy.git", branch = "main", default-features = false, features = ["http"] }
 bevy_scene = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
@@ -37,7 +38,6 @@ serde_json = "1"
 # serialization, without which a screenshot step panics the app rather than failing the step.
 [dev-dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["dynamic_linking", "bevy_remote"] }
-bevy_math = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_time = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 
 [profile.dev]

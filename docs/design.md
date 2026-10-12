@@ -97,8 +97,16 @@ time is the right measure there, where the app's own logic is measured in frames
 drawn in, and its centre in physical pixels, `UiGlobalTransform`'s translation as it stands. The
 window is the one the node's camera renders to, read from `ComputedUiTargetCamera`, which Bevy
 propagates from a root's `UiTargetCamera`; a node with no camera falls back to the primary window. A
-node drawn to an image rather than a window is refused. The method only locates. The client writes
-the click itself, using BRP (DD5.1).
+node drawn to an image rather than a window is refused.
+
+A node a scrolled ancestor hides is scrolled into view first: the nearest ancestor with
+`overflow: scroll` on an axis where the node lies outside it gets its `ScrollPosition` moved by the
+least that shows the whole node (its start, if the node is bigger than the view), within the
+content's range, and the method returns `{ scrolled: true }` in place of a position. Layout moves
+the node on a later frame, and a further ancestor can only be judged after that, so the client
+waits two frames and asks again, up to a limit. Bevy's `ScrollIntoView` event does the same, but
+only for a `ScrollArea` (`bevy_ui_widgets`); `ScrollPosition` covers any scrolled node. The client
+writes the click itself, using BRP (DD5.1).
 
 ### 3.4 Diagnostics
 
