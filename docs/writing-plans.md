@@ -66,6 +66,15 @@ prompt, covers the app and changes its timing.
 The workspace built is the one that holds the plan, so the command works from any directory, given
 the plan's path from there. A plan outside any Cargo workspace builds the one you are in.
 
+To run several plans, name them all, or a directory for every plan in it:
+
+```sh
+python3 ../bevy_remote_driver/client/run.py plans
+```
+
+They run one after another, each with its own report; a failure does not stop the rest. A summary
+follows, one line per plan.
+
 Screenshot steps bring the app's window to the front, taking focus from whatever had it.
 
 Output goes to `remote-driver/<target>/<plan>/` under Cargo's target directory (usually
@@ -76,6 +85,7 @@ Output goes to `remote-driver/<target>/<plan>/` under Cargo's target directory (
 ## Reading a failure
 
 The exit status is 0 on a pass, 1 when a step failed, 2 when the plan or the build could not run.
+For several plans it is the worst of theirs.
 
 1. **The report first.** It names the failing step by number, and for a Python plan the line that
    called it, with what the step expected and what it found, and whether the app had exited.

@@ -1,6 +1,10 @@
-"""Runs a plan: builds the target, launches it, runs the steps, reports, closes it (DD4.3).
+"""Runs plans: for each, builds the target, launches it, runs the steps, reports, closes it
+(DD4.3).
 
-    python3 <path to bevy_remote_driver>/client/run.py <plan.json | plan.py>
+    python3 <path to bevy_remote_driver>/client/run.py <plan.json | plan.py | directory>...
+
+A directory stands for every `.py` and `.json` file in it. Plans run one after another; a failed
+plan does not stop the rest, and a summary follows the last report.
 
 The workspace built is the one that holds the plan, from any working directory; a plan outside
 any Cargo workspace builds the working directory's. A JSON plan names its `bin` or its `example`,
@@ -61,10 +65,16 @@ def target_of(bin_name, example):
 
 def load(plan_path):
     """The plan's target, package, features, and a function running its steps on a driver."""
+    if not plan_path.is_file():
+        raise PlanError(f"no plan at {plan_path}")
     if plan_path.suffix == ".py":
         spec = importlib.util.spec_from_file_location(plan_path.stem, plan_path)
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        try:
+            spec.loader.exec_module(module)
+        except Exception as error:
+            # Reported as the plan's alone, so the plans after it still run.
+            raise PlanError(f"the plan did not load: {error!r}") from error
         return (
             target_of(getattr(module, "BIN", None), getattr(module, "EXAMPLE", None)),
             getattr(module, "PACKAGE", None),
@@ -175,11 +185,39 @@ def failed_step(driver, plan_path, error):
     return lines
 
 
+def plans_in(paths):
+    """The plans named by `paths`, a directory standing for its own `.py` and `.json` files, in name
+    order."""
+    plans = []
+    for path in map(Path, paths):
+        if path.is_dir():
+            plans += sorted(p for p in path.iterdir() if p.suffix in (".py", ".json"))
+        else:
+            plans.append(path)
+    return plans
+
+
 def main(argv):
-    if len(argv) != 2:
+    plans = plans_in(argv[1:])
+    if not plans:
         print(__doc__.strip(), file=sys.stderr)
         return 2
-    plan_path = Path(argv[1])
+    results = []
+    for plan_path in plans:
+        status = run_plan(plan_path)
+        results.append((status, plan_path))
+        if status == 130:
+            break
+    if len(plans) > 1:
+        words = {0: "passed", 1: "FAILED", 2: "could not run", 130: "interrupted"}
+        print(f"\n{sum(status == 0 for status, _ in results)} of {len(plans)} plans passed")
+        for status, plan_path in results:
+            print(f"{words[status]}: {plan_path}")
+    return max(status for status, _ in results)
+
+
+def run_plan(plan_path):
+    """Runs one plan, prints its report and returns its exit status."""
     cwd = cargo_dir(plan_path)
     try:
         target, package, features, run = load(plan_path)
@@ -235,7 +273,8 @@ def main(argv):
         report.append(f"screenshot: {path}")
     text = "\n".join(report) + "\n"
     (out_dir / "report.txt").write_text(text)
-    print(text, end="")
+    # Flushed, so each report comes out after its own build's output, which goes to stderr.
+    print(text, end="", flush=True)
     return status
 
 

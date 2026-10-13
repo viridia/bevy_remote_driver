@@ -40,6 +40,6 @@ is meant for Bevy itself (`docs/upstream.md`); once Bevy takes it, this becomes 
 
 - `cargo clippy --all-targets`: no errors, no new warnings. `cargo test`.
 - End to end, from this directory:
-  `python3 client/run.py plans/testbed/smoke.json` and `python3 client/run.py plans/testbed/typing.py`.
+  `python3 client/run.py plans/testbed`, which runs every testbed plan.
   Output goes to `target/remote-driver/` (or under `CARGO_TARGET_DIR`). Screenshots bring the app
   window to the front.

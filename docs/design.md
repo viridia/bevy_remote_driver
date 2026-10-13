@@ -213,6 +213,11 @@ screenshots, the app's saved settings and `report.txt`. The report is also print
 text, what it expected, what it found, whether the app had exited, and those paths (DR6.3). The exit
 status is 0 on a pass, 1 on a failure and 2 when the plan could not run.
 
+Given several plans, or a directory standing for its `.py` and `.json` files, the command runs
+them in turn, one app at a time, so a project's whole suite takes one command and one approval.
+A failure does not stop the rest; an interruption does. A summary of one line per plan follows
+the last report, and the exit status is the worst of the plans'.
+
 Consecutive inputs land on distinct frames (DR3.5). After writing an input the client reads
 `frame_count`, and it does not write the next input until the count has passed that value. The read
 is answered no earlier than the frame the input was, since BRP answers requests in order, so a
