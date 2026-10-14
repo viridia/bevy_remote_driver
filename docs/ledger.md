@@ -20,6 +20,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 
 | (pending) | Several plans in one run: `run.py` takes any number of plans, a directory standing for its `.py` and `.json` files, and runs them in turn, so a project's suite is one command and one approval. A failure, or a plan that is missing or does not load, does not stop the rest; an interruption does. A summary follows; the exit status is the worst. `writing-plans.md` (Running a plan, Reading a failure) and DD4.3 say so. Not copied to `bevy_action_map` (D4) unless asked. Verified: `plans/testbed` (3 plans), `arbor_day`'s `plans` (7), and two missing plans (status 2, both reported). |
 | (pending) | Press and hold: `click` takes `hold`, the frames between press and release, as `key` does (default 1, as before), for a control that acts while held. DD4.1 says so. First user: `arbor_day`'s HUD camera buttons (its C57). Not copied to `bevy_action_map` (D4) unless asked. Verified: testbed `panel.py` (8), `smoke.json` (17), `typing.py` (9); `arbor_day`'s four plans, `smoke.py` holding each camera button. |
+| (pending) | A path into the value `expect` compares: `at`, in Bevy's reflection path syntax (`"limbs[0].angle.shape"`) or as a list of keys and indices, walked over the JSON BRP returns, so lists are reached by index rather than compared whole. Client only. First user: `arbor_day`'s C27, whose plans read species fields inside an array of limb levels. Richer entity selectors are X7. Verified: testbed `panel.py` (8), `smoke.json` (17), `typing.py` (9); `arbor_day`'s four plans. |
 
 ## Next
 
@@ -101,6 +102,10 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   anything moved. Today the event acts only on the nearest `ScrollArea`, which many games'
   scrolled nodes are not. A ticket (to file) asks for it to act on every `overflow: scroll`
   ancestor, and perhaps to move into `bevy_ui`. *Gate:* that change in the Bevy we build against.
+- **X7** Richer entity selectors than a path of `Name`s (DD3.1): an index for the Nth match or
+  child, given as a number in the list form, or a CSS-like syntax, the model Bevy UI authors know
+  best. Value paths are `expect`'s `at`, which needed none of this. *Gate:* a plan that must reach
+  an entity it cannot name, such as one row of a list built from data without computed names.
 
 ## Notes
 

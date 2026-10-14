@@ -3,6 +3,7 @@
 import functools
 import http.client
 import json
+import re
 import struct
 import time
 import urllib.request
@@ -69,6 +70,26 @@ def path_of(selector):
 
 def shown(matches):
     return ["/".join(m["path"]) for m in matches] or "nothing"
+
+
+def field_path(at):
+    """A path into a value as a list of keys and indices: `"limbs[0].angle"` is
+    `["limbs", 0, "angle"]`. A list is taken as it is, for a key that contains `.` or `[`."""
+    if not isinstance(at, str):
+        return list(at)
+    return [int(index) if index else key for index, key in re.findall(r"\[(\d+)\]|([^.\[\]]+)", at)]
+
+
+def walk(value, path):
+    """The part of `value` at `path`, or `None` and the step where the path stopped matching."""
+    for depth, step in enumerate(path):
+        if isinstance(step, int) and isinstance(value, list) and step < len(value):
+            value = value[step]
+        elif isinstance(step, str) and isinstance(value, dict) and step in value:
+            value = value[step]
+        else:
+            return None, path[: depth + 1]
+    return value, None
 
 
 def subset(expected, found):
@@ -170,9 +191,17 @@ class Driver:
         self._wait(check, f"{selector} to match nothing", timeout)
 
     @step
-    def expect(self, selector, component, value, timeout=None):
+    def expect(self, selector, component, value, timeout=None, at=None):
         """Waits until `component` on the one entity `selector` matches has `value`, compared as a
-        subset: keys `value` leaves out are not compared."""
+        subset: keys `value` leaves out are not compared.
+
+        With `at`, compares the part of the component at that path instead: field names joined by
+        `.`, and list indices in brackets, as Bevy's reflection paths write them
+        (`"limbs[0].angle.shape"`), or the same as a list (`["limbs", 0, "angle", "shape"]`). The
+        path walks the component as BRP returns it, so a newtype such as `Seed(7)` is its inner
+        value, `seed` rather than `seed.0`.
+        """
+        path = field_path(at) if at is not None else []
 
         def check():
             matches = self._select(selector)
@@ -185,9 +214,13 @@ class Driver:
             if component not in result["components"]:
                 return False, result["errors"].get(component, "no such component")
             found = result["components"][component]
-            return subset(value, found), json.dumps(found)
+            part, stopped = walk(found, path)
+            if stopped is not None:
+                return False, f"no {stopped} in {json.dumps(found)}"
+            return subset(value, part), json.dumps(part)
 
-        self._wait(check, f"{component} on {selector} to be {described(value)}", timeout)
+        where = f"{component} at {at}" if at is not None else component
+        self._wait(check, f"{where} on {selector} to be {described(value)}", timeout)
 
     @step
     def click(self, selector, hold=1):
