@@ -167,8 +167,8 @@ run. A timeout of `{ "frames": 0 }` looks once, so checking that something is st
 `frames` step followed by an `absent` that looks once.
 
 `pad` has no `hold` because it does not need one: a control that carries a value is left at it, and
-returned to `0.0` by a second step, which is what spans frames for a pad. A key has no value, so
-`hold` is the only thing that can span them for a keyboard.
+returned to `0.0` by a second step, which is what spans frames for a pad. A key or a mouse button
+has no value, so `hold` is the only thing that can span them, for `key` and for `click`.
 
 ### 4.2 A Python plan
 

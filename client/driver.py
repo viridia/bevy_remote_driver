@@ -190,9 +190,10 @@ class Driver:
         self._wait(check, f"{component} on {selector} to be {described(value)}", timeout)
 
     @step
-    def click(self, selector):
+    def click(self, selector, hold=1):
         """Clicks the centre of a UI node, with the left button, first scrolling it into view if a
-        scrolled ancestor hides it."""
+        scrolled ancestor hides it. The button is released `hold` frames after the press, so a
+        larger `hold` is a press and hold, for a control that acts while held."""
         where = self._locate(selector)
         window = where["window"]
         # Picking needs to know where the cursor is before the press arrives.
@@ -201,6 +202,8 @@ class Driver:
             {"CursorMoved": {"window": window, "physical_position": where["physical"]}},
         )
         for state in ("Pressed", "Released"):
+            if state == "Released":
+                self._until(self._sent_at + hold - 1)
             self._send(
                 WINDOW_EVENT,
                 {"MouseButtonInput": {"button": "Left", "state": state, "window": window}},
