@@ -47,6 +47,7 @@ marked read:
 | Click | `world.write_message`, `WindowEvent::CursorMoved` then `MouseButtonInput` | read, from Bevy's `examples/remote/integration_test.rs` |
 | Quit | `world.write_message`, `bevy_app::AppExit` | read: `AppExit` is a reflected `Message` |
 | Connect a gamepad | `world.spawn_entity` an empty entity, then `world.write_message` `GamepadConnectionEvent` naming it | `gamepad_connection_system` inserts `Gamepad` onto the entity the event names (DD5.3) |
+| Write app state | `world.insert_components` / `world.insert_resources` whole; `world.mutate_components` / `world.mutate_resources` by reflection path | a mutate path is reflection's, which steps into a newtype (`.0`) and a tuple variant, where the JSON BRP returns has neither |
 
 Two behaviours matter for every test. A covered window runs at about half the frame rate, so timing
 is measured in frames (DD4.3). And a window brought forward takes focus from whatever had it, the
@@ -333,6 +334,6 @@ at most, and this project is its client.
 ## 9. Writing a test
 
 The instructions DR7.4 requires are [writing-plans.md](writing-plans.md), with the client's
-docstrings as the step reference. `plans/testbed/` holds a JSON plan (`smoke.json`) and two Python
-plans (`typing.py`, and `panel.py`, the README's example), which between them use every step but
-`pad`, `message` and `exits`, which the testbed has no use for.
+docstrings as the step reference. `plans/testbed/` holds a JSON plan (`smoke.json`) and three Python
+plans (`typing.py`, `state.py`, and `panel.py`, the README's example), which between them use every
+step but `pad`, `message` and `exits`, which the testbed has no use for.

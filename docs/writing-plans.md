@@ -51,6 +51,10 @@ Reference:
    value, `Between(low, high)` (`from driver import Between`) matches any number in that range,
    both ends included, so a plan checks a count's order of magnitude without breaking on every
    change to how it is computed.
+8. **Drive each kind of widget through the UI once, and set the rest.** A plan about what a
+   setting does, not how it is edited, writes it with `set` or `set_resource`: one step, no
+   typing to be lost, and no widget to scroll to. Take a snapshot with `get` or `get_resource`
+   before a sequence of changes and write it back after, rather than undoing each field.
 
 ## Running a plan
 

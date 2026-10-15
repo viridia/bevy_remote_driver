@@ -80,6 +80,12 @@ def field_path(at):
     return [int(index) if index else key for index, key in re.findall(r"\[(\d+)\]|([^.\[\]]+)", at)]
 
 
+def reflect_path(at):
+    """`at` as a Bevy reflection path for BRP's mutate methods: `"limbs[0].angle"` or
+    `["limbs", 0, "angle"]` is `".limbs[0].angle"`."""
+    return "".join(f"[{step}]" if isinstance(step, int) else f".{step}" for step in field_path(at))
+
+
 def walk(value, path):
     """The part of `value` at `path`, or `None` and the step where the path stopped matching."""
     for depth, step in enumerate(path):
@@ -270,6 +276,61 @@ class Driver:
         self._send(type_path, value)
 
     @step
+    def get(self, selector, component, at=None):
+        """Returns `component` on the one entity `selector` matches, as BRP gives it, or the part
+        of it at `at`, a path as `expect` takes one. For Python plans: a JSON plan has nowhere to
+        keep the value.
+
+        With `set`, a snapshot: `saved = driver.get(…)`, edits, then `driver.set(…, saved)` puts
+        the whole component back as it was.
+        """
+        entity = self._one(selector)
+        result = self._call(
+            "world.get_components",
+            {"entity": entity, "components": [component], "strict": False},
+        )
+        if component not in result["components"]:
+            raise StepFailed(
+                f"{component} on {selector}", result["errors"].get(component, "no such component")
+            )
+        return self._part(result["components"][component], at)
+
+    @step
+    def get_resource(self, type_path, at=None):
+        """Returns a resource, or the part of it at `at`, as `get` does a component."""
+        return self._part(self._call("world.get_resources", {"resource": type_path})["value"], at)
+
+    @step
+    def set(self, selector, component, value, at=None):
+        """Writes `component` on the one entity `selector` matches, on its own frame, as an input
+        lands, but past the app's UI: a plan that tests a widget clicks and types instead.
+
+        Without `at`, replaces the whole component with `value`, as BRP's insert does. With `at`,
+        writes `value` to one field, given as a reflection path, which differs from `expect`'s in
+        one way: a newtype is a level of its own, so its inner value is `.0` (`"seed.0"`), and
+        `"seed"` writes the newtype whole.
+        """
+        entity = self._one(selector)
+        if at is None:
+            self._write("world.insert_components", {"entity": entity, "components": {component: value}})
+        else:
+            self._write(
+                "world.mutate_components",
+                {"entity": entity, "component": component, "path": reflect_path(at), "value": value},
+            )
+
+    @step
+    def set_resource(self, type_path, value, at=None):
+        """Writes a resource, or one field of it at `at`, as `set` does a component."""
+        if at is None:
+            self._write("world.insert_resources", {"resource": type_path, "value": value})
+        else:
+            self._write(
+                "world.mutate_resources",
+                {"resource": type_path, "path": reflect_path(at), "value": value},
+            )
+
+    @step
     def exits(self, code, seconds=10):
         """Presses a key that should quit the app, and waits until the app stops answering.
 
@@ -378,6 +439,22 @@ class Driver:
     def _select(self, selector):
         return self._call("driver.select", {"path": path_of(selector)})
 
+    def _one(self, selector):
+        """The entity `selector` matches, failing on none or several."""
+        matches = self._select(selector)
+        if len(matches) != 1:
+            raise StepFailed(f"{selector} to match one entity", shown(matches))
+        return matches[0]["entity"]
+
+    @staticmethod
+    def _part(value, at):
+        if at is None:
+            return value
+        part, stopped = walk(value, field_path(at))
+        if stopped is not None:
+            raise StepFailed(f"{at} in the value", f"no {stopped} in {json.dumps(value)}")
+        return part
+
     def _locate(self, selector):
         """Where a UI node is drawn. Each call scrolls at most one hiding ancestor, and layout
         moves the node on a later frame, so ask again until it is in view."""
@@ -450,9 +527,16 @@ class Driver:
         )
 
     def _send(self, message, value):
+        self._write("world.write_message", {"message": message, "value": value})
+
+    def _write(self, method, params):
+        """A call that changes the app, on a frame after the last one, as inputs land."""
         if self._sent_at is not None:
             self._until(self._sent_at + 1)
-        self._call("world.write_message", {"message": message, "value": value})
+        try:
+            self._call(method, params)
+        except BrpError as err:
+            raise StepFailed(f"{method} to accept {described(params)}", str(err)) from None
         self._sent_at = self.frame()
 
     def _capture(self):
