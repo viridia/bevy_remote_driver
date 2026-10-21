@@ -208,12 +208,29 @@ def main(argv):
         results.append((status, plan_path))
         if status == 130:
             break
+    passed = sum(status == 0 for status, _ in results)
     if len(plans) > 1:
         words = {0: "passed", 1: "FAILED", 2: "could not run", 130: "interrupted"}
-        print(f"\n{sum(status == 0 for status, _ in results)} of {len(plans)} plans passed")
+        print(f"\n{passed} of {len(plans)} plans passed")
         for status, plan_path in results:
             print(f"{words[status]}: {plan_path}")
+    announce(passed, len(plans))
     return max(status for status, _ in results)
+
+
+def announce(passed, total):
+    """Says the run is over, once, after the last app has closed, so a developer working
+    elsewhere knows that no more windows will come forward: on macOS a sound, Glass for a pass and
+    Basso otherwise, and a notification; elsewhere the terminal bell."""
+    if sys.platform != "darwin":
+        print("\a", end="", flush=True)
+        return
+    sound = "Glass" if passed == total else "Basso"
+    subprocess.Popen(["afplay", f"/System/Library/Sounds/{sound}.aiff"])
+    message = f"{passed} of {total} plans passed"
+    subprocess.Popen(
+        ["osascript", "-e", f'display notification "{message}" with title "Remote driver run over"']
+    )
 
 
 def run_plan(plan_path):

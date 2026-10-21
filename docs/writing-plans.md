@@ -79,6 +79,10 @@ python3 ../bevy_remote_driver/client/run.py plans
 They run one after another, each with its own report; a failure does not stop the rest. A summary
 follows, one line per plan.
 
+When the run is over, on macOS a sound plays (Glass if every plan passed, Basso if not) and a
+notification says how many passed; elsewhere the terminal bell rings. Until then, another plan's
+window may come forward at any moment.
+
 Screenshot steps bring the app's window to the front, taking focus from whatever had it.
 
 Output goes to `remote-driver/<target>/<plan>/` under Cargo's target directory (usually

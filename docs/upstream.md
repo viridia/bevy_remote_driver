@@ -16,12 +16,18 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
   no longer divides by the scale factor.
 - **Writable gamepad messages** ([bevy#25904](https://github.com/bevyengine/bevy/pull/25904)): a
   client can connect a virtual pad and send its buttons and axes with `world.write_message`.
+- **Selecting entities by a path of names**
+  ([bevy#26250](https://github.com/bevyengine/bevy/pull/26250)): `world.query` takes a
+  `name_path`. The driver's own `driver.select` (DD3.1) is due to be removed in its favour.
 
 ## Proposed
 
-- **Selecting entities by a path of names**
-  ([bevy#26121](https://github.com/bevyengine/bevy/issues/26121)): a `name_path` filter on
-  `world.query`. The driver's `driver.select` method does this today (DD3.1).
 - **Readiness as state** ([bevy#26120](https://github.com/bevyengine/bevy/issues/26120)):
   `bevy_scene` leaves a reflected `SceneReady` marker on each entity it triggers `Ready` for. The
   driver's global observer does this today (DD3.2).
+- **Scrolling a node into view on request**
+  ([bevy#26262](https://github.com/bevyengine/bevy/pull/26262)): `ScrollIntoView` moves into
+  `bevy_ui`, is reflected, so a client can send it with `world.trigger_event`, and scrolls every
+  `overflow: scroll` ancestor, not only the nearest `ScrollArea`. It would replace the scrolling
+  in `driver.locate` (DD3.3). A client can already read the rest of `driver.locate`, a node's
+  position and the window it is drawn in, with `world.query`.

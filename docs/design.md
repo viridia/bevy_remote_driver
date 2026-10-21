@@ -217,7 +217,10 @@ status is 0 on a pass, 1 on a failure and 2 when the plan could not run.
 Given several plans, or a directory standing for its `.py` and `.json` files, the command runs
 them in turn, one app at a time, so a project's whole suite takes one command and one approval.
 A failure does not stop the rest; an interruption does. A summary of one line per plan follows
-the last report, and the exit status is the worst of the plans'.
+the last report, and the exit status is the worst of the plans'. The run then says it is over,
+once, since a window closing does not tell a developer working elsewhere whether another will come
+forward: on macOS a sound (Glass for a pass, Basso otherwise) and a notification, elsewhere the
+terminal bell.
 
 Consecutive inputs land on distinct frames (DR3.5). After writing an input the client reads
 `frame_count`, and it does not write the next input until the count has passed that value. The read
@@ -318,8 +321,9 @@ step. The plugin is inert unless the port variable is set.
 
 | Piece | Home | Why |
 | --- | --- | --- |
-| Selection by name path | upstream, a filter on `world.query` (bevy#26121) | any app's test wants it, and it needs only `Name` and `ChildOf` |
+| Selection by name path | upstream, done: a filter on `world.query` (bevy#26250) | any app's test wants it, and it needs only `Name` and `ChildOf` |
 | Readiness as state | upstream, `bevy_scene` (bevy#26120) | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
+| Locating a UI node | the client, once scrolling into view is upstream (`ScrollIntoView`, bevy#26262) | its position and window are reflected components; only the scrolling needs the plugin |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
 | Clicks, keys and text | the client now; the plugin next, as methods built from Bevy's types; then perhaps upstream | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
 | Gamepads | the client | the messages are reflected and writable (bevy#25904) |
