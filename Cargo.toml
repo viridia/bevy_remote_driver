@@ -25,6 +25,7 @@ bevy_app = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_camera = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_diagnostic = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_ecs = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
+bevy_input = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_math = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_reflect = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_remote = { git = "https://github.com/bevyengine/bevy.git", branch = "main", default-features = false, features = ["http"] }

@@ -24,49 +24,30 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | State past the UI: `get` and `get_resource` return a component or resource, or the part at `at`, so a Python plan can take a snapshot; `set` and `set_resource` write one whole (BRP's insert) or one field by reflection path (BRP's mutate), on its own frame as an input lands. A rejected write fails the step, as now does a rejected `message`. For plans about what a setting does rather than how it is edited (`writing-plans.md`, rule 8). Client only. First user: `arbor_day`, whose species is a resource today and a document entity's component later. Verified: testbed `state.py` (14, new), `panel.py` (8), `smoke.json` (17), `typing.py` (9). |
 | (pending) | The end of a run announced: after the last plan, on macOS a sound (Glass for a pass, Basso otherwise) and a notification giving the count passed, elsewhere the terminal bell, so a developer working elsewhere knows no more windows will come forward; a window closing between plans looked like the end. DD4.3 and `writing-plans.md` (Running a plan) say so. Client only. Not copied to `bevy_action_map` (D4) unless asked. First user: `arbor_day`. |
 | (pending) | `driver.locate`'s upstream path: `upstream.md` gains "To propose", scrolling into view with `ScrollIntoView` acting on every scrolled ancestor and reflected (X6's ticket); DD8 gains a row for locating a node, which moves to the client once that lands. Docs only. |
-| (pending) | Bevy main bumped to `2614884` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. `name_path` landed upstream as bevy#26250, so `upstream.md` and DD8 list it as landed and Next gains item 4. Scrolling into view is filed as bevy#26262, so `upstream.md` lists it as proposed and X6 is gated on it. Verified: clippy clean; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans. |
+| (pending) | Bevy main bumped to `2614884` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. `name_path` landed upstream as bevy#26250, so `upstream.md` and DD8 list it as landed and Next gains an item deleting `driver.select`. Scrolling into view is filed as bevy#26262, so `upstream.md` lists it as proposed and X6 is gated on it. Verified: clippy clean; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans. |
+| (pending) | A click as a server method (DD5.1), the first half of the input proposal drafted for Bevy on 2026-10-20: `driver.click { entity, button, hold }` or `{ window, position }` queues `CursorMoved`, the press and the release as `WindowEvent`s built from Bevy's types, written one frame apart from `RemoteLast`, and returns `{ frame }`, the frame that reads the release. Scrolling into view takes every hiding ancestor in one pass (DD3.3), shared with `driver.locate`; the click's cursor event waits a frame for layout, so the client's retry and `SCROLL_TRIES` go. `bevy_input` joins the dependencies. Verified: clippy clean, 20 unit tests (seven new); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans against this checkout. |
 
 ## Next
 
-1. **A click as a server method.** bevy#25894 wants a runner in any language that speaks HTTP and
-   JSON, so whatever a runner builds for itself, every runner builds again. A click today is the
-   client writing `WindowEvent` over BRP, a window backend's message rather than a contract for
-   tests: bevy#25890 reshaped it, and every click failed at runtime until the client was patched.
-   This and item 2 prototype the proposal drafted for Bevy on 2026-10-20 (`input.click`,
-   `input.key`, `input.type`), so the methods take its shape, under the `driver.` prefix. They are
-   server methods in the plugin (Rust, registered beside `driver.locate`); the client's `click`,
-   `key` and `type` become one call each and a wait for the returned frame.
-   - `driver.click { entity, button, hold }`, or `{ window, position }` in physical pixels for a
-     point that is not a UI node. An entity resolves to its node's centre and window as
-     `driver.locate` does, and the plugin queues `CursorMoved`, the press and the release into a
-     resource it drains one per frame, in call order, the release `hold` frames after the press.
-     It returns once queued, with the frame the last event lands on (`{ frame }`), and the client
-     waits for that frame with `diagnostics.get`. A refusal (no such entity, not a UI node, in no
-     window) comes back from the call.
-   - The events are built from Bevy's types, so a change to their shape is a compile error.
-   - `driver.locate` stays, for a plan that wants a node's position without clicking it.
-   - `driver.click` scrolls the node into view first, as `driver.locate` does now (DD3.3), and
-     queues the events only once it is in view, so the client's retry goes.
-   - Update DD5.1 and DD8's row for clicks to describe the method. Once items 1 and 2 have proved
-     out, revise the proposal from what they taught, file it as a Bevy ticket (a sub-issue of
-     bevy#25894), and list it in [upstream.md](upstream.md).
-   - Not doing: keys and text (item 2); gamepads.
-   - Verified by a headless `App` test that one call yields the three events on three frames, and
-     `plans/testbed/smoke.json` end to end.
-2. **Keys and text as server methods**, after item 1, for the same reason. `driver.py` writes
-   `KeyboardInput` over BRP and derives `logical_key` and `text` from the key code, for a US layout
-   (DD5.2), so every runner re-derives them and breaks when the message changes.
-   `driver.key { key_code, hold }` (or `state`, to hold a key across calls; `logical_key` and
-   `text` optional, defaulting to a US layout) and `driver.type { text }` (Shift held where a
-   character needs it) queue on item 1's queue and return the same `{ frame }`; the plugin builds
-   the messages from Bevy's types, and the layout table moves from the client's `keys.py` into
-   the plugin. The client's `exits` step goes through it too. Not doing: other layouts; gamepads. Verified by
-   a headless `App` test of the derived messages, including text, and `plans/testbed/typing.py`.
-3. **Delete `driver.diagnostics`.** Past bevy#25824, BRP's own `diagnostics.get` reads
+1. **Keys and text as server methods**, the second half of the input proposal, after the click.
+   bevy#25894 wants a runner in any language that speaks HTTP and JSON, so whatever a runner
+   builds for itself, every runner builds again. `driver.py` writes `KeyboardInput` over BRP and
+   derives `logical_key` and `text` from the key code, for a US layout (DD5.2), so every runner
+   re-derives them and breaks when the message changes. `driver.key { key_code, hold }` (or
+   `state`, to hold a key across calls; `logical_key` and `text` optional, defaulting to a US
+   layout) and `driver.type { text }` (Shift held where a character needs it) are server methods
+   in the plugin, on `driver.click`'s queue (DD5.1), returning the same `{ frame }`; the plugin
+   builds the messages from Bevy's types, and the layout table moves from the client's `keys.py`
+   into the plugin. The client's `exits` step goes through it too. Not doing: other layouts;
+   gamepads. Verified by a headless test of the derived messages, including text, and
+   `plans/testbed/typing.py`. Then revise the proposal from what the two taught, and open it as
+   a Bevy PR (`input.click`, `input.key`, `input.type`; a sub-issue of bevy#25894), listed in
+   [upstream.md](upstream.md).
+2. **Delete `driver.diagnostics`.** Past bevy#25824, BRP's own `diagnostics.get` reads
    `frame_count` as `driver.diagnostics` does (DD3.4). The client switches to it and the method
    goes. `FrameTimeDiagnosticsPlugin` is still the driver's to add, since it records the count and
    is not in `DefaultPlugins`. Verified by any plan end to end, since every wait reads the count.
-4. **Delete `driver.select`.** Past bevy#26250, `world.query` takes a `name_path` filter
+3. **Delete `driver.select`.** Past bevy#26250, `world.query` takes a `name_path` filter
    (DD3.1). Its segments also take a number, the Nth child, which covers part of X7. It returns
    entities only, without `driver.select`'s per-match name path, so the client builds a report's
    path from `Name` and `ChildOf` queried with it, or reports entity ids. Update DD3.1, DD8's
@@ -94,7 +75,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 ## Deferred
 
 - **X1** What the driver becomes. [upstream.md](upstream.md) says what Bevy could take:
-  `name_path` has landed (bevy#26250; Next item 4), readiness as state (bevy#26120) has not.
+  `name_path` has landed (bevy#26250; Next item 3), readiness as state (bevy#26120) has not.
   What Bevy takes leaves the plugin; what it declines stays here; the client stays here either
   way. *Gate:* bevy#26120 decided.
 - **X2** Calling an app's own server methods from a plan. Apps can register methods (DD6), but the

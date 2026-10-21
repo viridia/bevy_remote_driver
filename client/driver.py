@@ -14,13 +14,9 @@ import keys
 DEFAULT_TIMEOUT = {"frames": 300, "seconds": 10}
 # How often a wait asks again. A round trip is about a millisecond, and a frame at least eight.
 POLL = 0.005
-# How many times a click may scroll before giving up: one per nested scrolled ancestor, and more if
-# layout keeps moving the node.
-SCROLL_TRIES = 8
 
 WINDOW = "bevy_window::window::Window"
 PRIMARY_WINDOW = "bevy_window::window::PrimaryWindow"
-WINDOW_EVENT = "bevy_window::event::WindowEvent"
 KEYBOARD_INPUT = "bevy_input::keyboard::KeyboardInput"
 GAMEPAD_CONNECTION = "bevy_input::gamepad::GamepadConnectionEvent"
 RAW_GAMEPAD = "bevy_input::gamepad::RawGamepadEvent"
@@ -233,20 +229,15 @@ class Driver:
         """Clicks the centre of a UI node, with the left button, first scrolling it into view if a
         scrolled ancestor hides it. The button is released `hold` frames after the press, so a
         larger `hold` is a press and hold, for a control that acts while held."""
-        where = self._locate(selector)
-        window = where["window"]
-        # Picking needs to know where the cursor is before the press arrives.
-        self._send(
-            WINDOW_EVENT,
-            {"CursorMoved": {"window": window, "physical_position": where["physical"]}},
-        )
-        for state in ("Pressed", "Released"):
-            if state == "Released":
-                self._until(self._sent_at + hold - 1)
-            self._send(
-                WINDOW_EVENT,
-                {"MouseButtonInput": {"button": "Left", "state": state, "window": window}},
-            )
+        entity = self._one(selector)
+        if self._sent_at is not None:
+            self._until(self._sent_at + 1)
+        try:
+            landed = self._call("driver.click", {"entity": entity, "hold": hold})["frame"]
+        except BrpError as err:
+            raise StepFailed(f"{selector} to be a UI node in a window", str(err)) from None
+        # As if the release were written the frame before it is read, so the next write follows it.
+        self._sent_at = landed - 1
 
     @step
     def key(self, code, hold=1, logical_key=None, text=None):
@@ -454,19 +445,6 @@ class Driver:
         if stopped is not None:
             raise StepFailed(f"{at} in the value", f"no {stopped} in {json.dumps(value)}")
         return part
-
-    def _locate(self, selector):
-        """Where a UI node is drawn. Each call scrolls at most one hiding ancestor, and layout
-        moves the node on a later frame, so ask again until it is in view."""
-        for _ in range(SCROLL_TRIES):
-            try:
-                where = self._call("driver.locate", {"path": path_of(selector)})
-            except BrpError as err:
-                raise StepFailed(f"{selector} to be one UI node", shown(err.data or [])) from None
-            if not where.get("scrolled"):
-                return where
-            self._until(self.frame() + 2)
-        raise StepFailed(f"{selector} to scroll into view", f"{SCROLL_TRIES} scrolls")
 
     def _has(self, entity, component):
         result = self._call(

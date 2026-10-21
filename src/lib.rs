@@ -40,13 +40,15 @@
 #![forbid(unsafe_code)]
 
 mod diagnostics;
+mod input;
 mod locate;
 mod ready;
 mod select;
 
 use bevy_app::{App, Plugin};
 use bevy_diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy_remote::{RemotePlugin, http::RemoteHttpPlugin};
+use bevy_ecs::schedule::IntoScheduleConfigs;
+use bevy_remote::{RemoteLast, RemotePlugin, RemoteSystems, http::RemoteHttpPlugin};
 
 pub use ready::SceneReady;
 
@@ -90,9 +92,15 @@ fn install(app: &mut App, port: u16) {
         RemotePlugin::default()
             .with_method_main(select::METHOD, select::process_request)
             .with_method_main(locate::METHOD, locate::process_request)
+            .with_method_main(input::CLICK, input::process_click)
             .with_method_main(diagnostics::METHOD, diagnostics::process_request),
         RemoteHttpPlugin::default().with_port(port),
     ))
+    .init_resource::<input::InputQueue>()
+    .add_systems(
+        RemoteLast,
+        input::write_due.after(RemoteSystems::ProcessRequests),
+    )
     .register_type::<SceneReady>()
     .add_observer(ready::mark_ready);
 }

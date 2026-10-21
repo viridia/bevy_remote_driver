@@ -100,14 +100,15 @@ window is the one the node's camera renders to, read from `ComputedUiTargetCamer
 propagates from a root's `UiTargetCamera`; a node with no camera falls back to the primary window. A
 node drawn to an image rather than a window is refused.
 
-A node a scrolled ancestor hides is scrolled into view first: the nearest ancestor with
+A node a scrolled ancestor hides is scrolled into view first: each ancestor with
 `overflow: scroll` on an axis where the node lies outside it gets its `ScrollPosition` moved by the
 least that shows the whole node (its start, if the node is bigger than the view), within the
-content's range, and the method returns `{ scrolled: true }` in place of a position. Layout moves
-the node on a later frame, and a further ancestor can only be judged after that, so the client
-waits two frames and asks again, up to a limit. Bevy's `ScrollIntoView` event does the same, but
-only for a `ScrollArea` (`bevy_ui_widgets`); `ScrollPosition` covers any scrolled node. The client
-writes the click itself, using BRP (DD5.1).
+content's range, and the method returns `{ scrolled: true }` in place of a position. Ancestors are
+taken nearest first, and each scroll moves the node within the views around it by what it applied,
+so one pass scrolls them all; layout moves the node on the next frame, when a client asks again.
+Bevy's `ScrollIntoView` event does the same, but only for the nearest `ScrollArea`
+(`bevy_ui_widgets`), until bevy#26262; `ScrollPosition` covers any scrolled node. A click
+(`driver.click`, DD5.1) resolves and scrolls its node the same way.
 
 ### 3.4 Diagnostics
 
@@ -254,11 +255,22 @@ What made the driver's tests reliable, and what another client must do for a pla
 
 ### 5.1 Clicks
 
-`driver.locate`, then three `world.write_message` calls of `WindowEvent`, each on its own frame:
-`CursorMoved` to the centre, given as a `physical_position` from which `bevy_window` derives the
-logical one, `MouseButtonInput` pressed, then released. Picking needs the cursor to have moved
-before the press, and a press and a release in the same frame are indistinguishable from a tap the
-app may treat differently.
+`driver.click { entity, button, hold }`, or `{ window, position }` in physical pixels for a point
+that is not a UI node, queues three `WindowEvent`s, each on its own frame: `CursorMoved` to the
+node's centre, given as a `physical_position` from which `bevy_window` derives the logical one,
+`MouseButtonInput` pressed, then released `hold` frames later. Picking needs the cursor to have
+moved before the press, and a press and a release in the same frame are indistinguishable from a
+tap the app may treat differently. The events are Bevy's own types, built in the plugin, so a
+change to their shape is a compile error there rather than a runtime failure in every client.
+
+The queue is a resource of events, each with the frame that reads it, and every event is due at
+least a frame after the one before, across calls too. A system in `RemoteLast`, after BRP has
+handled requests, writes the events that are due, so what is written is read on the next frame,
+as with `world.write_message`. `FrameCount` advances in `Last`, before that, so it already counts
+the frame that reads them, as the `frame_count` diagnostic numbers it. The method returns
+`{ frame }`, the frame that reads the release, and the client's next write follows it. A node is
+scrolled into view as DD3.3 describes, and its cursor event then waits a frame for layout; the
+node's centre is read when the event is written, so it is where layout put it.
 
 ### 5.2 Keys and text
 
@@ -325,7 +337,7 @@ step. The plugin is inert unless the port variable is set.
 | Readiness as state | upstream, `bevy_scene` (bevy#26120) | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
 | Locating a UI node | the client, once scrolling into view is upstream (`ScrollIntoView`, bevy#26262) | its position and window are reflected components; only the scrolling needs the plugin |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
-| Clicks, keys and text | the client now; the plugin next, as methods built from Bevy's types; then perhaps upstream | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
+| Clicks, keys and text | the plugin, as methods built from Bevy's types (clicks done; keys and text next); then upstream, by PR | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
 | Gamepads | the client | the messages are reflected and writable (bevy#25904) |
 | Bringing the window forward before a screenshot | the client | a policy for tests, not a property of screenshots |
 | Plans, the runner, the report | the client | upstream has no reason to want a Python client |
