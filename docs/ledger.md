@@ -33,16 +33,26 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    bevy#25894 wants a runner in any language that speaks HTTP and JSON, so whatever a runner
    builds for itself, every runner builds again. `driver.py` writes `KeyboardInput` over BRP and
    derives `logical_key` and `text` from the key code, for a US layout (DD5.2), so every runner
-   re-derives them and breaks when the message changes. `driver.key { key_code, hold }` (or
-   `state`, to hold a key across calls; `logical_key` and `text` optional, defaulting to a US
-   layout) and `driver.type { text }` (Shift held where a character needs it) are server methods
-   in the plugin, on `driver.click`'s queue (DD5.1), returning the same `{ frame }`; the plugin
-   builds the messages from Bevy's types, and the layout table moves from the client's `keys.py`
-   into the plugin. The client's `exits` step goes through it too. Not doing: other layouts;
-   gamepads. Verified by a headless test of the derived messages, including text, and
-   `plans/testbed/typing.py`. Then revise the proposal from what the two taught, and open it as
-   a Bevy PR (`input.click`, `input.key`, `input.type`; a sub-issue of bevy#25894), listed in
-   [upstream.md](upstream.md).
+   re-derives them and breaks when the message changes. Server methods in the plugin, on
+   `driver.click`'s queue (DD5.1), returning the same `{ frame }`, written as
+   `WindowEvent::KeyboardInput`, which `bevy_window` splits into `KeyboardInput` before
+   `InputSystems`:
+   - `driver.key { key_code, logical_key, text, hold }`, or `state` in place of `hold` to press
+     or release alone (a modifier held across calls). The caller names both keys; the plugin
+     derives nothing (the alternative in the author's Bevy ticket on synthetic keyboard input,
+     2026-10-21, chosen to keep the proposal small). The client's `key`, `press`, `release`
+     and `exits` fill them from `keys.py`'s `logical`, a convenience for plan writers that stays
+     client-side.
+   - `driver.type { text }`: the string gives each character's logical key and text; a US table
+     in the plugin gives its key code and Shift, pressed and released around it. A character
+     outside the table is sent as `KeyCode::Unidentified`, with no Shift, so it still types into
+     a text field. The client's `CHARACTERS` table moves into the plugin.
+   - `bevy_input` gains its `serialize` feature, for `KeyCode` and `Key` in the params.
+   - Not doing: modifier state (a held Shift does not change `key`'s text; the caller names it);
+     other layouts; gamepads. Verified by headless tests of the written messages, including
+     Shift and an unknown character, and `plans/testbed/typing.py`. Then revise the proposal
+     from what the two taught, and open it as a Bevy PR (`input.click`, `input.key`,
+     `input.type`; a sub-issue of bevy#25894), listed in [upstream.md](upstream.md).
 2. **Delete `driver.diagnostics`.** Past bevy#25824, BRP's own `diagnostics.get` reads
    `frame_count` as `driver.diagnostics` does (DD3.4). The client switches to it and the method
    goes. `FrameTimeDiagnosticsPlugin` is still the driver's to add, since it records the count and
@@ -108,6 +118,18 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   child, given as a number in the list form, or a CSS-like syntax, the model Bevy UI authors know
   best. Value paths are `expect`'s `at`, which needed none of this. *Gate:* a plan that must reach
   an entity it cannot name, such as one row of a list built from data without computed names.
+- **X8** Drags, and plans that record a demo or tutorial (the author, 2026-10-26). A drag is
+  `driver.click`'s press, a `CursorMoved` each frame along a path, and the release, on the same
+  queue (DD5.1), which picking turns into drag start, drag and end. For tests, a few frames in a
+  straight line; for a recording, eased in and out (cubic) along a slight arc, its duration
+  growing with distance as Fitts's law has it, so short and long drags both read as a hand's.
+  Synthetic input moves no OS cursor, so a recording shows the driver's pointer as a cursor image
+  the plugin draws when the plan asks, rather than warping the real cursor, which fights the
+  user's mouse and needs the window in front. Recorded by capturing each frame in the app
+  (Bevy's `Screenshot`, then ffmpeg), for an even frame rate with no focus needed; holds between
+  steps, and perhaps captions, for pacing. First users: `arbor_day`'s curve editor, whose point
+  drag, rectangle selection and Escape mid-drag are checked by hand, its turntable gestures, and a
+  video of handle dragging (its X62). *Gate:* the first plan or video wanting a drag.
 
 ## Notes
 
