@@ -19,15 +19,23 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
 - **Selecting entities by a path of names**
   ([bevy#26250](https://github.com/bevyengine/bevy/pull/26250)): `world.query` takes a
   `name_path`. The driver's own `driver.select` (DD3.1) is due to be removed in its favour.
+- **Scrolling a node into view on request**
+  ([bevy#26262](https://github.com/bevyengine/bevy/pull/26262)): `ScrollIntoView` is in
+  `bevy_ui`, reflected, so a client can send it with `world.trigger_event`, and scrolls every
+  `overflow: scroll` ancestor, not only the nearest `ScrollArea`. It replaces the scrolling in
+  `driver.locate` (DD3.3). A client can already read the rest of `driver.locate`, a node's
+  position and the window it is drawn in, with `world.query`.
+- **Clicks as a server method** ([bevy#26333](https://github.com/bevyengine/bevy/pull/26333)):
+  `input.click` takes a UI node or a window point, scrolls a hidden node into view, and returns
+  the frame that reads the release. The driver's own `driver.click` (DD5.1) is due to be removed
+  in its favour.
 
 ## Proposed
 
 - **Readiness as state** ([bevy#26120](https://github.com/bevyengine/bevy/issues/26120)):
   `bevy_scene` leaves a reflected `SceneReady` marker on each entity it triggers `Ready` for. The
   driver's global observer does this today (DD3.2).
-- **Scrolling a node into view on request**
-  ([bevy#26262](https://github.com/bevyengine/bevy/pull/26262)): `ScrollIntoView` moves into
-  `bevy_ui`, is reflected, so a client can send it with `world.trigger_event`, and scrolls every
-  `overflow: scroll` ancestor, not only the nearest `ScrollArea`. It would replace the scrolling
-  in `driver.locate` (DD3.3). A client can already read the rest of `driver.locate`, a node's
-  position and the window it is drawn in, with `world.query`.
+- **Keys and text as server methods**
+  ([bevy#26342](https://github.com/bevyengine/bevy/pull/26342)): `input.key` and `input.type`, on
+  `input.click`'s queue. They replace the client's `KeyboardInput` messages and its US key table
+  (DD5.2).
