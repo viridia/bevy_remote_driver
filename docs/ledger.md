@@ -26,7 +26,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | `driver.locate`'s upstream path: `upstream.md` gains "To propose", scrolling into view with `ScrollIntoView` acting on every scrolled ancestor and reflected (X6's ticket); DD8 gains a row for locating a node, which moves to the client once that lands. Docs only. |
 | (pending) | Bevy main bumped to `2614884` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. `name_path` landed upstream as bevy#26250, so `upstream.md` and DD8 list it as landed and Next gains an item deleting `driver.select`. Scrolling into view is filed as bevy#26262, so `upstream.md` lists it as proposed and X6 is gated on it. Verified: clippy clean; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans. |
 | (pending) | A click as a server method (DD5.1), the first half of the input proposal drafted for Bevy on 2026-10-20: `driver.click { entity, button, hold }` or `{ window, position }` queues `CursorMoved`, the press and the release as `WindowEvent`s built from Bevy's types, written one frame apart from `RemoteLast`, and returns `{ frame }`, the frame that reads the release. Scrolling into view takes every hiding ancestor in one pass (DD3.3), shared with `driver.locate`; the click's cursor event waits a frame for layout, so the client's retry and `SCROLL_TRIES` go. `bevy_input` joins the dependencies. Verified: clippy clean, 20 unit tests (seven new); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans against this checkout. |
-| (pending) | Upstream status: `ScrollIntoView` (bevy#26262, `fa57bd8a5`) and `input.click` (bevy#26333, `b85a36290`) merged on Bevy main; `input.key` and `input.type` filed as bevy#26342, skipping the plugin. `upstream.md` and DD8 say so; Next item 1 becomes deleting `driver.click` and moving keys and text to BRP; X6's gate is the bump; X1 becomes the move to a Python-only project, gated on Next 1–3, X6 and bevy#26120. Docs only. |
+| (pending) | Upstream status: `ScrollIntoView` (bevy#26262, `fa57bd8a5`) and `input.click` (bevy#26333, `b85a36290`) merged on Bevy main; `input.key` and `input.type` filed as bevy#26342, skipping the plugin. `upstream.md` and DD8 say so; Next item 1 becomes deleting `driver.click` and moving keys and text to BRP; X6's gate is the bump; X1 becomes the move to a Python-only project, gated on Next 1–3, X6 and bevy#26120; X8's drag is proposed upstream beside `input.click`; new X9, clicking a sprite or mesh. Docs only. |
 
 ## Next
 
@@ -104,8 +104,18 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   best. Value paths are `expect`'s `at`, which needed none of this. *Gate:* a plan that must reach
   an entity it cannot name, such as one row of a list built from data without computed names.
 - **X8** Drags, and plans that record a demo or tutorial (the author, 2026-10-26). A drag is
-  `driver.click`'s press, a `CursorMoved` each frame along a path, and the release, on the same
-  queue (DD5.1), which picking turns into drag start, drag and end. For tests, a few frames in a
+  `input.click`'s press, a `CursorMoved` each frame along a path, and the release, on the same
+  queue in `bevy_remote`, which picking turns into drag start, drag and end; proposed upstream
+  beside `input.click` rather than in the plugin, so X1 holds. Sketch: `input.click` gains
+  `state`, as `input.key` has, to send the press or the release alone; `input.move { entity }` or
+  `{ window, position }`, with `frames` (default 1) and `easing`, moves the cursor from where the
+  queue left it, one `CursorMoved` a frame, and returns `{ frame }`. A drag is a press, a move and
+  a release, with an `input.key` for Escape before the release to cancel one; a move alone tests
+  hover. `easing` names an `EaseFunction`, now in `bevy_curve`, which `bevy_remote` would depend
+  on with its `serialize` feature (plain variants as names, `"CubicInOut"`); the first PR could
+  move linearly and leave easing to a second. A client could write the messages
+  itself, a frame apart, but each is a round trip, and a recording's pacing needs every frame's
+  position written on that frame. For tests, a few frames in a
   straight line; for a recording, eased in and out (cubic) along a slight arc, its duration
   growing with distance as Fitts's law has it, so short and long drags both read as a hand's.
   Synthetic input moves no OS cursor, so a recording shows the driver's pointer as a cursor image
@@ -115,6 +125,20 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   steps, and perhaps captions, for pacing. First users: `arbor_day`'s curve editor, whose point
   drag, rectangle selection and Escape mid-drag are checked by hand, its turntable gestures, and a
   video of handle dragging (its X62). *Gate:* the first plan or video wanting a drag.
+- **X9** Clicking a sprite or a mesh (the author, 2026-10-28). `input.click`'s `entity` is a UI
+  node; a world entity needs a camera to project it into the window, and a point other than its
+  centre when the centre misses it (a ring, a sprite's transparent middle) or something nearer the
+  camera covers it. Sketch: `entity` with an optional `camera`, needed only when more than one
+  camera draws to a window, and an optional `point` in the entity's local space, defaulting to
+  its `Aabb`'s centre (meshes and sprites both have one). The server projects with
+  `Camera::world_to_viewport` and adds the viewport's offset. A local point stays on the entity as
+  the camera moves, which a pixel offset does not. Whether the click hit it is picking's answer,
+  which a plan can check afterwards in the entity's reflected `PickingInteraction`. Belongs
+  upstream beside `input.click`, so X1 holds.
+  A place rather than a thing, such as ground to walk to, is the app's to answer (X2), or a
+  marker entity it spawns there for the click. *Gate:* the first plan that must click into the
+  world. First user: Panoply's actors, whose player clicks an actor or fixture to interact with
+  it (its Next item 2).
 
 ## Notes
 
