@@ -1,6 +1,6 @@
 """Start opens the panel, typing reaches the text field, and Escape closes the panel."""
 
-EXAMPLE = "testbed"
+BIN = "testbed"
 TEXT = "bevy_ui::widget::text::Text"
 
 

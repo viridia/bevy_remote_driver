@@ -1,7 +1,6 @@
 """Each character typed shows up before the next one is sent."""
 
-PACKAGE = "bevy_remote_driver"
-EXAMPLE = "testbed"
+BIN = "testbed"
 
 TEXT = "a-Z?"
 TYPED = "bevy_ui::widget::text::Text"

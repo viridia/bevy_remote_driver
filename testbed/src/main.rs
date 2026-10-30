@@ -4,15 +4,16 @@
 //! is typed. Run it under the client:
 //!
 //! ```sh
-//! python3 client/run.py plans/testbed/smoke.json
+//! python3 client/run.py testbed/plans/smoke.json
 //! ```
 
 use bevy::{
+    diagnostic::FrameTimeDiagnosticsPlugin,
     input::keyboard::KeyboardInput,
     prelude::*,
+    remote::{RemotePlugin, http::RemoteHttpPlugin},
     ui_widgets::{Activate, Button},
 };
-use bevy_remote_driver::RemoteDriverPlugin;
 
 const BACKGROUND: Color = Color::srgb(0.1, 0.1, 0.12);
 const BUTTON: Color = Color::srgb(0.25, 0.3, 0.45);
@@ -25,22 +26,29 @@ struct Panel;
 struct Typed;
 
 fn main() {
-    App::new()
-        .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Driver testbed".into(),
-                    resolution: (640, 400).into(),
-                    ..default()
-                }),
-                ..default()
-            }),
-            RemoteDriverPlugin,
-        ))
-        .insert_resource(ClearColor(BACKGROUND))
-        .add_systems(Startup, (camera.spawn(), menu.spawn()))
-        .add_systems(Update, (type_into, close))
-        .run();
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "Driver testbed".into(),
+            resolution: (640, 400).into(),
+            ..default()
+        }),
+        ..default()
+    }))
+    .insert_resource(ClearColor(BACKGROUND))
+    .add_systems(Startup, (camera.spawn(), menu.spawn()))
+    .add_systems(Update, (type_into, close));
+
+    if let Ok(port) = std::env::var("BEVY_REMOTE_DRIVER_PORT") {
+        let port = port.trim().parse().expect("BEVY_REMOTE_DRIVER_PORT is not a port");
+        app.add_plugins((
+            RemotePlugin::default(),
+            RemoteHttpPlugin::default().with_port(port),
+            FrameTimeDiagnosticsPlugin::default(),
+        ));
+    }
+
+    app.run();
 }
 
 fn camera() -> impl Scene {

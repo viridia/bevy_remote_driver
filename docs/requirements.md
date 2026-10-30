@@ -24,10 +24,10 @@ to maintain.
   such as an input mapper.
 - **DR1.3 (MUST)** A capability BRP already provides is used as BRP provides it, rather than being
   wrapped in a driver method.
-- **DR1.4 (MUST)** An app under test needs only to add the driver's plugin and give stable ids to
-  the entities a test names (DR2).
-- **DR1.5 (MUST)** The plugin opens no port unless the app is started for testing. A build that
-  contains the plugin behaves as though it did not when started normally.
+- **DR1.4 (MUST)** An app under test needs only to enable BRP and give stable ids to the entities a
+  test names (DR2).
+- **DR1.5 (MUST)** The app opens no port unless it is started for testing. A build that can be
+  driven behaves as though it could not when started normally.
 
 ## 2. Selecting entities
 

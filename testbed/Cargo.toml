@@ -1,0 +1,21 @@
+[package]
+name = "testbed"
+description = "A small app for the driver's own plans to run against"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Bevy is named by branch, as in every repo using the driver: Cargo treats a branch and a rev as
+# different sources even at the same commit, which would build two Bevys. `Cargo.lock` holds the
+# commit. The `bevy_remote` feature registers `Image`'s serialization, without which a screenshot
+# step panics the app rather than failing the step. `bevy_debug_stepping` is for
+# `tests/scene_readiness.rs`.
+[dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["dynamic_linking", "bevy_remote", "bevy_debug_stepping"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

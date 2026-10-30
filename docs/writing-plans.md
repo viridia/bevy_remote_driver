@@ -2,23 +2,40 @@
 
 How to write, run and debug end-to-end tests for a Bevy app with this driver.
 
-Reference:
-
-- **Steps**: `class Driver` in [`client/driver.py`](../client/driver.py). The class docstring
-  covers selectors, timeouts, type paths and the JSON form; each step's docstring covers that step.
-- **App setup**: the crate docs at the top of [`src/lib.rs`](../src/lib.rs).
+The steps' reference is `class Driver` in [`client/driver.py`](../client/driver.py). The class
+docstring covers selectors, timeouts, type paths and the JSON form; each step's docstring covers
+that step.
 
 ## Setup
 
-1. Depend on the driver by git, and name Bevy exactly as the driver does. Any other form, such as
-   a `rev` or a release, builds a second Bevy.
+1. Use Bevy main at `784b85d` or later, for the input methods the driver calls (they are not in
+   0.20), and enable the `bevy` crate's `bevy_remote` feature. Without it, `Image` has no
+   serialization registered, and a screenshot step panics the app instead of failing the step.
 
    ```toml
    bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["bevy_remote"] }
-   bevy_remote_driver = { git = "https://github.com/viridia/bevy_remote_driver" }
    ```
 
-2. Add the plugin, as `src/lib.rs` describes.
+2. Enable BRP in the app's `main` when the driver starts it, on the port it gives:
+
+   ```rust
+   use bevy::{
+       diagnostic::FrameTimeDiagnosticsPlugin,
+       remote::{RemotePlugin, http::RemoteHttpPlugin},
+   };
+
+   if let Ok(port) = std::env::var("BEVY_REMOTE_DRIVER_PORT") {
+       let port = port.trim().parse().expect("BEVY_REMOTE_DRIVER_PORT is not a port");
+       app.add_plugins((
+           RemotePlugin::default(),
+           RemoteHttpPlugin::default().with_port(port),
+           FrameTimeDiagnosticsPlugin::default(),
+       ));
+   }
+   ```
+
+   A player who starts the game normally gets no open port. Leave out
+   `FrameTimeDiagnosticsPlugin` if the app already adds it; the driver counts frames with it.
 3. Check out this repository next to the project (`../bevy_remote_driver`), for the client.
 
 ## Writing a plan
@@ -36,7 +53,7 @@ Reference:
    screenshot, `present` on what it should show. Give a step whose point is not obvious a
    comment, and a sequence you repeat a named function.
 3. **Write JSON only for a flat list of steps that reads as one.** It names `bin` or `example`
-   and lists `steps`. `plans/testbed/smoke.json` is an example, and `panel.py` and `typing.py`
+   and lists `steps`. `testbed/plans/smoke.json` is an example, and `panel.py` and `typing.py`
    beside it are Python ones.
 4. **Put the app into the state the test assumes, rather than assuming it.** Settings the app
    saves with `bevy_settings` start empty on every run, and your own saved settings are left

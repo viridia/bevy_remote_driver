@@ -1,7 +1,7 @@
 """State written past the UI: a resource replaced and restored from a snapshot, one of its fields
 written by reflection path, and a component replaced whole and by one field."""
 
-EXAMPLE = "testbed"
+BIN = "testbed"
 CLEAR = "bevy_camera::clear_color::ClearColor"
 NODE = "bevy_ui::ui_node::Node"
 TEXT = "bevy_ui::widget::text::Text"

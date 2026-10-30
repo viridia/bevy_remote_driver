@@ -4,34 +4,31 @@ A driver for a running Bevy app, for automated tests. Its sections are numbered 
 requirements are [requirements.md](./requirements.md)'s `DR` numbers. Where a claim rests on reading
 Bevy's source rather than on running something, it says so.
 
-The worked examples are the driver's own testbed, `examples/testbed.rs`: a menu with a Start button
+The worked examples are the driver's own testbed, `testbed/src/main.rs`: a menu with a Start button
 that opens a panel, which Escape closes, and a line showing what is typed. Its plans are in
-`plans/testbed/`.
+`testbed/plans/`.
 
 ---
 
 ## 1. Shape
 
-Two halves, joined by BRP over HTTP:
+An app and a client, joined by BRP over HTTP:
 
 ```
 app under test                          client (Python, standard library only)
   RemotePlugin, RemoteHttpPlugin          launches the app, waits for the port
-  RemoteDriverPlugin              <-->  runs a plan step by step
+  FrameTimeDiagnosticsPlugin      <-->  runs a plan step by step
                                           writes input with BRP's own methods
                                           saves screenshots, writes the report, closes the app
 ```
 
-The plugin adds no server methods: selecting, input and the frame count are all BRP's built-in
-methods (DR1.3, DD8), and the client is where the driver's actual work happens. The plugin only
-sets BRP up.
+The driver is only the client. Selecting, input and the frame count are all BRP's built-in
+methods (DR1.3, DD8), so the app needs no code of the driver's: it adds BRP's two plugins and
+`FrameTimeDiagnosticsPlugin` in its `main` (DD7).
 
-`RemoteDriverPlugin` adds `RemotePlugin` and `RemoteHttpPlugin` itself, and only when the
-environment variable `BEVY_REMOTE_DRIVER_PORT` is set, on that port. Without it the plugin is
-inert, so a build containing it opens no port when started normally (DR1.5). A value that is not a
-port panics at startup, since running without the port would leave the client timing out with no
-reason given. An app does not add either remote plugin itself, since Bevy refuses a plugin added
-twice.
+The app adds them only when the environment variable `BEVY_REMOTE_DRIVER_PORT` is set, on that
+port, so a build started normally opens no port (DR1.5). A value that is not a port panics at
+startup, since running without the port would leave the client timing out with no reason given.
 
 ## 2. What BRP already does
 
@@ -57,7 +54,7 @@ key on it (read, `bevy_input`'s `keyboard_input_system`). So a test that holds a
 clicks another window sees the key released, which is Bevy behaving correctly rather than the driver
 failing.
 
-## 3. The plugin
+## 3. Reading the app
 
 ### 3.1 Selectors
 
@@ -83,7 +80,7 @@ A client needs no readiness of its own (DR3.2): waiting for the entity a step ne
 BSN applies a queued scene, an entity and all its descendants, in one call from an exclusive system
 in `SpawnScene`, and BRP answers in `RemoteLast`, so a request sees a scene whole or not at all.
 Until then the scene's entity is empty, and a path of the names it gives matches nothing.
-`tests/scene_readiness.rs` shows this after every frame, and after every system of `SpawnScene`.
+`testbed/tests/scene_readiness.rs` shows this after every frame, and after every system of `SpawnScene`.
 
 Two cases show part of a scene first: an entity named outside its scene, then given one with
 `queue_apply_scene`, and an entity given related scenes. Each shows its own entity before the rest,
@@ -105,11 +102,10 @@ hides into view, with `bevy_ui`'s `ScrollIntoView`, which moves every `overflow:
 ### 3.4 Diagnostics
 
 Every wait measured in frames reads the `frame_count` diagnostic with BRP's own `diagnostics.get`
-(bevy#25824). `FrameTimeDiagnosticsPlugin` records it from `FrameCount`. That plugin is not in
-`DefaultPlugins`, so the driver's plugin adds it when it is missing (DR1.4). `is_plugin_added`
-sees only plugins added before the driver's, so an app that adds `FrameTimeDiagnosticsPlugin` too
-must add it first, or Bevy panics on the duplicate. A value is an `f64`, which holds a frame count
-exactly for longer than any test runs.
+(bevy#25824). `FrameTimeDiagnosticsPlugin` records it from `FrameCount`, which is not reflected
+and so not readable itself. That plugin is not in `DefaultPlugins`, so the app's setup adds it,
+unless the app already does. A value is an `f64`, which holds a frame count exactly for longer
+than any test runs.
 
 ## 4. Plans and the client
 
@@ -132,7 +128,7 @@ the client reads with only the standard library and no build step (DR7.1, DR7.3)
 
 ```json
 {
-  "example": "testbed",
+  "bin": "testbed",
   "steps": [
     { "click": "Menu/Start" },
     { "present": "Panel" },
@@ -171,11 +167,11 @@ report adds the line of the program that made the failing call.
 A loop, a branch or a computed value needs a program. So does most of what a test is actually made
 of: a sequence it repeats, which becomes a named function instead of the same six steps written out
 three times, and a step whose point is not its arguments, which gets a sentence beside it. JSON says
-neither. `plans/testbed/typing.py` types one character at a time and checks the text after each, a
+neither. `testbed/plans/typing.py` types one character at a time and checks the text after each, a
 loop that JSON would spell out character by character.
 
 JSON stays for a test that is a flat list of steps and reads as one, and for DR7.1's own sake: it
-runs without compiling or importing anything, which `plans/testbed/smoke.json` is kept to show.
+runs without compiling or importing anything, which `testbed/plans/smoke.json` is kept to show.
 
 ### 4.3 A run
 
@@ -304,11 +300,10 @@ are named. What such a name is computed *from* matters more than how many there 
 identity the screen already holds, such as a key or an index, rather than the text it draws: display
 text may be translated, and two rows can show the same label.
 
-An app adds `RemoteDriverPlugin` in its `main`, and enables the `bevy` crate's `bevy_remote`
-feature. The feature is not redundant with the driver's own dependency on the `bevy_remote`
-subcrate: without it an app still builds and still answers BRP, but `Image` has no serialization
+An app adds BRP in its `main`, with the lines [writing-plans.md](writing-plans.md) gives, and
+enables the `bevy` crate's `bevy_remote` feature. Without the feature `Image` has no serialization
 registered, and the screenshot step panics the app inside `bevy_remote` rather than failing the
-step. The plugin is inert unless the port variable is set.
+step.
 
 ## 8. Where each piece ends up
 
@@ -324,12 +319,12 @@ step. The plugin is inert unless the port variable is set.
 | Plans, the runner, the report | the client | upstream has no reason to want a Python client |
 | An app's own state | the app's crates (DD6) | their own types |
 
-Every server method the plugin once added has gone upstream ([upstream.md](./upstream.md)), so the
-plugin is only setup, a few lines an app could hold itself, and this project is its client.
+Every server method the driver's plugin once added has gone upstream ([upstream.md](./upstream.md)),
+and the plugin with them: an app's setup is a few lines of its own, and this project is a client.
 
 ## 9. Writing a test
 
 The instructions DR7.4 requires are [writing-plans.md](writing-plans.md), with the client's
-docstrings as the step reference. `plans/testbed/` holds a JSON plan (`smoke.json`) and three Python
+docstrings as the step reference. `testbed/plans/` holds a JSON plan (`smoke.json`) and three Python
 plans (`typing.py`, `state.py`, and `panel.py`, the README's example), which between them use every
 step but `pad`, `message` and `exits`, which the testbed has no use for.

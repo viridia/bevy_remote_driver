@@ -1,6 +1,5 @@
 {
-  "package": "bevy_remote_driver",
-  "example": "testbed",
+  "bin": "testbed",
   "steps": [
     { "present": "Menu" },
     { "absent": "Panel", "timeout": { "frames": 0 } },
