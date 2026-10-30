@@ -18,7 +18,9 @@ is meant for Bevy itself (`docs/upstream.md`); once Bevy takes it, this becomes 
   short subject line (`feat:` / `fix:` / `refactor:` / `chore:` / `docs:` prefix, under about 72
   characters), a blank line, then a body of bullets, one per change, wrapped at 72 columns.
 - One chunk per session: one focused change. Update the ledger in the same chunk (Landed row,
-  Next, new decisions or deferrals).
+  Next, new decisions or deferrals). A Next item is numbered as a chunk, after the highest
+  number used, and keeps its number when it lands. Chunk numbers are plain, cited as "chunk
+  18", or "the driver's chunk 18" from another repo.
 - Every open item goes in the ledger: in Next, or in Deferred with a gate.
 - Propose structural changes (new dependencies, a new server method, a change to the plan
   format) with a recommendation before writing code.
