@@ -2,41 +2,12 @@
 
 How to write, run and debug end-to-end tests for a Bevy app with this driver.
 
-The steps' reference is `class Driver` in [`client/driver.py`](../client/driver.py). The class
+The steps' reference is `class Driver` in
+[`src/bevy_remote_driver/driver.py`](../src/bevy_remote_driver/driver.py). The class
 docstring covers selectors, timeouts, type paths and the JSON form; each step's docstring covers
 that step.
 
-## Setup
-
-1. Use Bevy main at `784b85d` or later, for the input methods the driver calls (they are not in
-   0.20), and enable the `bevy` crate's `bevy_remote` feature. Without it, `Image` has no
-   serialization registered, and a screenshot step panics the app instead of failing the step.
-
-   ```toml
-   bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["bevy_remote"] }
-   ```
-
-2. Enable BRP in the app's `main` when the driver starts it, on the port it gives:
-
-   ```rust
-   use bevy::{
-       diagnostic::FrameTimeDiagnosticsPlugin,
-       remote::{RemotePlugin, http::RemoteHttpPlugin},
-   };
-
-   if let Ok(port) = std::env::var("BEVY_REMOTE_DRIVER_PORT") {
-       let port = port.trim().parse().expect("BEVY_REMOTE_DRIVER_PORT is not a port");
-       app.add_plugins((
-           RemotePlugin::default(),
-           RemoteHttpPlugin::default().with_port(port),
-           FrameTimeDiagnosticsPlugin::default(),
-       ));
-   }
-   ```
-
-   A player who starts the game normally gets no open port. Leave out
-   `FrameTimeDiagnosticsPlugin` if the app already adds it; the driver counts frames with it.
-3. Check out this repository next to the project (`../bevy_remote_driver`), for the client.
+Installing the client and setting up the app are in the [README](../README.md).
 
 ## Writing a plan
 
@@ -66,7 +37,7 @@ that step.
 6. **Assert with checks, not screenshots.** `expect`, `absent` and `present` are what make a test
    fail. A screenshot shows that something is drawn, for the person reading the run.
 7. **Match a range where an exact value would only restate the app's arithmetic.** In an `expect`
-   value, `Between(low, high)` (`from driver import Between`) matches any number in that range,
+   value, `Between(low, high)` (`from bevy_remote_driver import Between`) matches any number in that range,
    both ends included, so a plan checks a count's order of magnitude without breaking on every
    change to how it is computed.
 8. **Drive each kind of widget through the UI once, and set the rest.** A plan about what a
@@ -77,7 +48,7 @@ that step.
 ## Running a plan
 
 ```sh
-python3 ../bevy_remote_driver/client/run.py plans/<plan>.py
+bevy-remote-driver plans/<plan>.py
 ```
 
 It builds the target, launches it with the driver's port set, runs the steps, closes the app and
@@ -91,7 +62,7 @@ the plan's path from there. A plan outside any Cargo workspace builds the one yo
 To run several plans, name them all, or a directory for every plan in it:
 
 ```sh
-python3 ../bevy_remote_driver/client/run.py plans
+bevy-remote-driver plans
 ```
 
 They run one after another, each with its own report; a failure does not stop the rest. A summary

@@ -35,35 +35,30 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 25 | The frame count from BRP: the client's `frame` reads `frame_count` with `diagnostics.get`, failing the step if the diagnostic is missing, and `driver.diagnostics` goes (`diagnostics.rs`, with the `bevy_time` dev-dependency). `FrameTimeDiagnosticsPlugin` is still the driver's to add. `installing_registers_the_methods` also checks the built-in methods the client calls: `diagnostics.get`, `input.click`, `input.key` and `input.type`. DD3.4 and `upstream.md` follow. Verified: clippy clean on all targets, 7 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans. |
 | 26 | Selectors from BRP: the client's `_select` sends `world.query` with a `name_path` filter, refusing an empty selector, and `driver.select` goes (`select.rs`), the plugin's last server method. A number in a list selector is now a child index (DD3.1, X7). A failing step's report still gives each match's full path, which the client builds from every entity's `Name` and `ChildOf` in one query, made only when the step fails (`_shown`; `_wait` takes a report as a function). The plugin is now only setup; `bevy_ecs`, `serde` and `serde_json` go. DD1, DD3.1, DD8, `upstream.md` and `class Driver`'s docstring follow. Verified: clippy clean on all targets, 3 unit tests, `scene_readiness` (3, one ignored); a throwaway testbed plan matched `["Menu", 0]` and reported `absent("Start")`'s match as `Menu/Start`; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans. |
 | 28 | A Python-only project (was X1; D1): the Rust crate goes (`Cargo.toml`, `src/lib.rs` and its three unit tests), and an app enables BRP itself, with the lines `writing-plans.md`'s Setup now gives: `RemotePlugin`, `RemoteHttpPlugin` on `BEVY_REMOTE_DRIVER_PORT`, and `FrameTimeDiagnosticsPlugin`, only when the variable is set (DR1.5). The testbed becomes its own package, `testbed/`, with the setup in its `main`, `tests/scene_readiness.rs`, `Cargo.lock` and its plans (was `plans/testbed/`), which name `bin = "testbed"`. DR1.4, DR1.5, DD1, DD3.4, DD7, DD8, the README, AGENTS.md, D1 and D2 follow; chunk 31's gate is Bevy 0.21, the first release with the input methods. Verified: clippy clean on all targets in `testbed/`, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9). |
+| 29 | A Python package, `bevy-remote-driver`: `client/` becomes `src/bevy_remote_driver/` (`driver.py`, `run.py`, and `__init__.py` exporting `Between` and `Driver`), with `pyproject.toml` on `uv_build`, no dependencies (D5), `requires-python >= 3.11`, and `uv.lock`. The command is `bevy-remote-driver`, installed with `uv tool install git+…`; plans import `from bevy_remote_driver import Between`. 21 `unittest` tests in `tests/` cover selectors, field and reflection paths, `walk`, `subset`, `Between`, the PNG writer and plan loading. CI (`.github/workflows/ci.yml`): ruff 0.17.3, pinned since its default rules grow, and the tests on Python 3.11 and 3.14. ruff's fixes: two explicit `check=False`, one `walk` branch merged, formatting. The README is rewritten for users and PyPI (absolute links): a plan, installing, setting up the app (moved from `writing-plans.md`, which points to it), running plans, a compatibility table, status, licence; CI, licence and Bevy-tracking badges, the PyPI ones left to chunk 31. AGENTS.md, DD4.1, DD4.3 and DD7 follow. `arbor_day`'s plans stop running here, since `client/run.py` and `from driver import` are gone, until chunk 30. Verified: ruff clean; the tests on 3.11 and 3.12; from Panoply's directory, `uvx --from <this checkout> bevy-remote-driver testbed/plans`: `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9). Not run from `git+https` until pushed. |
 
 ## Next
 
-Chunks 29–31 are the road to a published Python package, and cross repos.
+Chunks 30–31 are the road to a published Python package, and cross repos.
 
-29. **A Python package.** `src/bevy_remote_driver/` with `pyproject.toml`, no dependencies (D5),
-   `requires-python >= 3.11`, built with `uv`; a `bevy-remote-driver` command in place of
-   `python3 <path>/client/run.py`; plans import `from bevy_remote_driver import Between`. The
-   README: what it is with a short plan, installing, setting up the app (the `bevy_remote`
-   feature, the setup lines, the port variable, `#Name`), running plans, `writing-plans.md`, a
-   compatibility table, the licence; badges for PyPI, Python versions, licence, CI and Bevy
-   tracking. CI for Python only: ruff, and unit tests of the pure functions (selectors, `walk`,
-   `subset`, `Between`, the PNG writer, plan loading). Verified by running the testbed plans
-   from outside the repo with `uvx --from git+https://github.com/viridia/bevy_remote_driver`.
 30. **Users on the package.** `bevy_action_map`: diff its copy's client against this one for
    anything its plans rely on, then delete `crates/bevy_remote_driver`; its examples gain the
-   setup lines, and its plans import the package and run from git as in chunk 29. D4 retires,
-   here and in its ledger. `arbor_day` and the testbed: drop the Rust dependency, with the same
-   imports and command; Panoply's plans once it has them. `arbor_day`'s git dependency is held by
-   its `Cargo.lock` at a commit that still has the crate; a `cargo update` before this chunk fails
-   to find it. Verified by each repo's plans.
+   setup lines, and its plans import the package and run from git as chunk 29 installs it. D4
+   retires, here and in its ledger. `arbor_day`: drop the Rust dependency, take the setup lines,
+   and move its plans to `from bevy_remote_driver import Between` and the `bevy-remote-driver`
+   command; its plans do not run until then (chunk 29). Its git dependency is held by its
+   `Cargo.lock` at a commit that still has the crate; a `cargo update` fails to find it. Panoply's
+   plans once it has them. First, confirm the `git+https` install works once chunk 29 is pushed.
+   Verified by each repo's plans.
 31. **Publish on PyPI at Bevy 0.21's release**, the first with the input methods, and the
-   compatibility table's first row, superseding D1. Trusted Publishing from a release workflow run on a tag, so no token is stored. The
-   author's account, recovered or new, with 2FA; check `bevy-remote-driver` is free first. Users'
-   commands become `uvx bevy-remote-driver`. *Gate:* Bevy 0.21 released.
+   compatibility table's first row, superseding D1. Trusted Publishing from a release workflow
+   run on a tag, so no token is stored. The author's account, recovered or new, with 2FA; check
+   `bevy-remote-driver` is free first. Users' commands become `uvx bevy-remote-driver`. The
+   README gains the PyPI version and Python versions badges. *Gate:* Bevy 0.21 released.
 
 ## Decisions
 
-- **D1** Unpublished: the client runs from a checkout until chunk 31. Bevy took every server
+- **D1** Unpublished: the client installs from git until chunk 31. Bevy took every server
   method the Rust half had (upstream.md), so since chunk 28 this is a Python-only project, and an
   app enables BRP itself.
 - **D2** Bevy is main, named by `git` and `branch = "main"`, the commit held by
@@ -77,8 +72,8 @@ Chunks 29–31 are the road to a published Python package, and cross repos.
 - **D4** `bevy_action_map` keeps its own copy (`crates/bevy_remote_driver`), since it is a published
   crate whose tests others may want to run without a second repo. This repo is the canonical copy;
   a fix that crate needs is copied across by hand, and the reverse.
-- **D5** The client uses Python's standard library only (DD1), so a plan runs with nothing
-  installed.
+- **D5** The client uses Python's standard library only (DD1), so the package has no
+  dependencies and installing it brings nothing else.
 
 ## Deferred
 

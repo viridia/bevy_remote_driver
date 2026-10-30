@@ -2,6 +2,9 @@ target/
 .DS_Store
 __pycache__/
 *.pyc
+.venv/
+.ruff_cache/
+dist/
 
 # Editor configuration is each contributor's own.
 .vscode/

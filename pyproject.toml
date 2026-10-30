@@ -1,0 +1,33 @@
+[project]
+name = "bevy-remote-driver"
+version = "0.1.0"
+description = "Drive a running Bevy app from outside for end-to-end tests, over the Bevy Remote Protocol"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+authors = [{ name = "Talin" }]
+keywords = ["bevy", "testing", "end-to-end", "game-development"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Testing",
+]
+# The standard library only, so a plan runs with nothing else installed (D5).
+requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/viridia/bevy_remote_driver"
+
+[project.scripts]
+bevy-remote-driver = "bevy_remote_driver.run:main"
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -79,9 +79,9 @@ def reflect_path(at):
 def walk(value, path):
     """The part of `value` at `path`, or `None` and the step where the path stopped matching."""
     for depth, step in enumerate(path):
-        if isinstance(step, int) and isinstance(value, list) and step < len(value):
-            value = value[step]
-        elif isinstance(step, str) and isinstance(value, dict) and step in value:
+        index = isinstance(step, int) and isinstance(value, list) and step < len(value)
+        key = isinstance(step, str) and isinstance(value, dict) and step in value
+        if index or key:
             value = value[step]
         else:
             return None, path[: depth + 1]
@@ -226,7 +226,9 @@ class Driver:
         larger `hold` is a press and hold, for a control that acts while held."""
         entity = self._one(selector)
         self._input(
-            "input.click", {"entity": entity, "hold": hold}, f"{selector} to be a UI node in a window"
+            "input.click",
+            {"entity": entity, "hold": hold},
+            f"{selector} to be a UI node in a window",
         )
 
     @step
@@ -291,11 +293,18 @@ class Driver:
         """
         entity = self._one(selector)
         if at is None:
-            self._write("world.insert_components", {"entity": entity, "components": {component: value}})
+            self._write(
+                "world.insert_components", {"entity": entity, "components": {component: value}}
+            )
         else:
             self._write(
                 "world.mutate_components",
-                {"entity": entity, "component": component, "path": reflect_path(at), "value": value},
+                {
+                    "entity": entity,
+                    "component": component,
+                    "path": reflect_path(at),
+                    "value": value,
+                },
             )
 
     @step
@@ -451,9 +460,9 @@ class Driver:
             passed, found = check()
             if passed:
                 return
-            if (
-                "frames" in limit and self.frame() - start_frame >= limit["frames"]
-            ) or ("seconds" in limit and time.monotonic() - start >= limit["seconds"]):
+            if ("frames" in limit and self.frame() - start_frame >= limit["frames"]) or (
+                "seconds" in limit and time.monotonic() - start >= limit["seconds"]
+            ):
                 # A report that costs a query is given as a function, called only here.
                 raise StepFailed(expected, found() if callable(found) else found)
             time.sleep(POLL)
@@ -495,9 +504,7 @@ class Driver:
                 {"gamepad": self._gamepad, "connection": {"Connected": VIRTUAL_PAD}},
             )
         kind, part = ("Axis", "axis") if control in AXES else ("Button", "button")
-        self._send(
-            RAW_GAMEPAD, {kind: {"gamepad": self._gamepad, part: control, "value": value}}
-        )
+        self._send(RAW_GAMEPAD, {kind: {"gamepad": self._gamepad, part: control, "value": value}})
 
     def _send(self, message, value):
         self._write("world.write_message", {"message": message, "value": value})

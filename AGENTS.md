@@ -27,21 +27,25 @@ app the driver's own plans run against.
 - Bevy is main, named by branch (see `testbed/Cargo.toml`). Read APIs in the local checkout
   `../bevy` at the commit `testbed/Cargo.lock` holds, and its
   `_release-content/migration-guides/`, rather than guessing.
-- User docs have one home each: a step's behaviour in its docstring in `client/driver.py`
-  (selectors, timeouts and the JSON form in `class Driver`'s), app setup and the workflow in
-  `docs/writing-plans.md`. A change updates that home, and nothing else repeats it.
+- User docs have one home each: a step's behaviour in its docstring in
+  `src/bevy_remote_driver/driver.py` (selectors, timeouts and the JSON form in `class Driver`'s),
+  installing and app setup in the README (also the PyPI page, so its links are absolute), the
+  workflow in `docs/writing-plans.md`. A change updates that home, and nothing else repeats it.
+- The client uses the standard library only (D5); ruff and the unit tests run through uv.
 - Prose follows the "House style" section of `../bevy_action_map/CLAUDE.md`. A user-facing doc
   (README, `writing-plans.md`, docstrings) gets a separate polish pass once its content is
   settled.
-- Users: `arbor_day` runs the client from a checkout, and depended on the old Rust crate by git
-  until it moves (chunk 30). Panoply has a copy of its own (`crates/bevy_remote_driver`).
+- Users: `arbor_day` ran the client from a checkout's `client/run.py`, and depends on the old Rust
+  crate by git; its plans do not run until it moves to the package (chunk 30). Panoply has a copy of its own (`crates/bevy_remote_driver`).
   `bevy_action_map` keeps a copy too, as a published crate whose tests others may run; a fix
   here that it needs is copied across by hand.
 
 ## Verify
 
+- The client: `uvx ruff check`, `uvx ruff format --check`, and
+  `uv run python -m unittest discover -s tests`.
 - In `testbed/`: `cargo clippy --all-targets`, no errors and no new warnings; `cargo test`.
 - End to end, from this directory:
-  `python3 client/run.py testbed/plans`, which runs every testbed plan.
+  `uv run bevy-remote-driver testbed/plans`, which runs every testbed plan.
   Output goes to `remote-driver/` in Cargo's target directory. Screenshots bring the app window to
   the front.

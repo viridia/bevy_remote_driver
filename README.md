@@ -1,17 +1,15 @@
-# bevy_remote_driver
+# bevy-remote-driver
 
-End-to-end tests for Bevy apps, driven from outside over the Bevy Remote Protocol (BRP). A test
+[![CI](https://github.com/viridia/bevy_remote_driver/actions/workflows/ci.yml/badge.svg)](https://github.com/viridia/bevy_remote_driver/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/viridia/bevy_remote_driver#license)
+[![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-main-lightblue)](https://bevy.org/learn/quick-start/plugin-development/#main-branch-tracking)
+
+End-to-end tests for Bevy apps, driven from outside over the Bevy Remote Protocol (BRP). A plan
 launches the real app, finds entities by name, sends input, waits for the app to react, checks
-components, and takes screenshots.
-
-- **The app** enables BRP, in a few lines of its `main`, when `BEVY_REMOTE_DRIVER_PORT` is set,
-  so normal builds open no port.
-- **The client**: Python, standard library only. It builds the app, launches it, runs a plan,
-  reports, and closes the app.
+components, and takes screenshots. The client is Python, standard library only; the app needs
+only a few lines of setup.
 
 ## A plan
-
-From `testbed/plans/panel.py`, against `testbed/src/main.rs`:
 
 ```python
 """Start opens the panel, typing reaches the text field, and Escape closes the panel."""
@@ -21,79 +19,105 @@ TEXT = "bevy_ui::widget::text::Text"
 
 
 def run(driver):
-    driver.present("Menu")     # wait for the scene to finish spawning
+    driver.present("Menu")  # wait for the scene to finish spawning
     driver.screenshot("menu")
-    driver.click("Menu/Start")             # a UI node, by its path of Names
-    driver.present("Panel")                # waits until it appears
+    driver.click("Menu/Start")  # a UI node, by its path of Names
+    driver.present("Panel")  # waits until it appears
     driver.type("Hi!")
     driver.expect("Menu/Typed", TEXT, "Hi!")
     driver.key("Escape")
     driver.absent("Panel")
 ```
 
-The same steps can be written as JSON when a test is a flat list:
+A plan that is a flat list of steps can be JSON instead.
 
-```json
-{
-  "bin": "testbed",
-  "steps": [
-    { "present": "Menu" },
-    { "click": "Menu/Start" },
-    { "present": "Panel" },
-    { "key": "Escape" },
-    { "absent": "Panel" }
-  ]
-}
+## Installing
+
+The client needs Python 3.11 or later. Install it with [uv](https://docs.astral.sh/uv/):
+
+```sh
+uv tool install git+https://github.com/viridia/bevy_remote_driver
 ```
 
-On the app's side: enable BRP as [docs/writing-plans.md](docs/writing-plans.md) shows, enable
-`bevy/bevy_remote`, and give a `Name` to what a test refers to (`#Start` in a BSN scene).
+This puts `bevy-remote-driver` on your `PATH`; `uv tool upgrade bevy-remote-driver` updates it.
 
-One command builds the app, launches it, runs the plan and closes it:
+## Setting up the app
+
+1. Enable the `bevy` crate's `bevy_remote` feature. Without it, `Image` has no serialization
+   registered, and a screenshot step panics the app instead of failing the step.
+
+   ```toml
+   bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["bevy_remote"] }
+   ```
+
+2. Enable BRP in the app's `main` when the driver starts it, on the port it gives in
+   `BEVY_REMOTE_DRIVER_PORT`:
+
+   ```rust
+   use bevy::{
+       diagnostic::FrameTimeDiagnosticsPlugin,
+       remote::{RemotePlugin, http::RemoteHttpPlugin},
+   };
+
+   if let Ok(port) = std::env::var("BEVY_REMOTE_DRIVER_PORT") {
+       let port = port.trim().parse().expect("BEVY_REMOTE_DRIVER_PORT is not a port");
+       app.add_plugins((
+           RemotePlugin::default(),
+           RemoteHttpPlugin::default().with_port(port),
+           FrameTimeDiagnosticsPlugin::default(),
+       ));
+   }
+   ```
+
+   A player who starts the game normally gets no open port. Leave out
+   `FrameTimeDiagnosticsPlugin` if the app already adds it; the driver counts frames with it.
+
+3. Give a `Name` to each entity a plan refers to: `#Start` in a BSN scene.
+
+## Running plans
 
 ```
-$ python3 client/run.py testbed/plans/panel.py
-plan: testbed/plans/panel.py
+$ bevy-remote-driver plans/panel.py
+plan: plans/panel.py
 passed: 8 steps
 log: /path/to/project/target/remote-driver/testbed/panel/app.log
 screenshot: /path/to/project/target/remote-driver/testbed/panel/menu.png
 ```
 
-With `"Hello"` in place of `"Hi!"` in the `expect`, the run fails, naming the step and the line of
-the plan that ran it:
+It builds the app, launches it, runs the plan and closes it. A directory runs every plan in it. A
+failure names the step and the line of the plan that ran it:
 
 ```
-plan: testbed/plans/panel.py
+plan: plans/panel.py
 FAILED
 step 6: expect('Menu/Typed', 'bevy_ui::widget::text::Text', 'Hello')
-at testbed/plans/panel.py:13
+at plans/panel.py:13
 expected: bevy_ui::widget::text::Text on Menu/Typed to be "Hello"
 found: "Hi!"
-log: /path/to/project/target/remote-driver/testbed/panel/app.log
-screenshot: /path/to/project/target/remote-driver/testbed/panel/menu.png
 ```
 
-## Reading further
+[Writing and running test plans](https://github.com/viridia/bevy_remote_driver/blob/main/docs/writing-plans.md)
+covers the rest: writing a plan that holds up, running several, and reading a failure. The
+steps' reference is the docstrings of
+[`class Driver`](https://github.com/viridia/bevy_remote_driver/blob/main/src/bevy_remote_driver/driver.py).
 
-1. [docs/upstream.md](docs/upstream.md): what Bevy took from the driver, so that a client in any
-   language needs no plugin.
-2. [docs/requirements.md](docs/requirements.md) and [docs/design.md](docs/design.md): what the
-   driver must do, and how it does it.
-3. [docs/writing-plans.md](docs/writing-plans.md): writing and running plans.
-4. The code: the client (`client/`, about 750 lines of Python), and `testbed/`, the app its own
-   plans run against.
+## Compatibility
 
-[docs/ledger.md](docs/ledger.md) is the development log: what has landed, what is next, and the
-decisions so far.
+| bevy-remote-driver | Bevy |
+| --- | --- |
+| main (git) | main, from `784b85d` |
+
+Bevy 0.20 lacks the input methods the driver calls; 0.21 will be the first release with them.
 
 ## Status
 
-Early. It tests the examples of [`bevy_action_map`](https://github.com/viridia/bevy_action_map)
-and the game Panoply, and has run only on macOS. It builds against Bevy main. Discussion of
-end-to-end testing in Bevy is in [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
-
-Not published yet; [docs/writing-plans.md](docs/writing-plans.md) covers running the client from
-a checkout.
+Early, and run only on macOS so far. It tests the examples of
+[`bevy_action_map`](https://github.com/viridia/bevy_action_map) and the game Panoply. How it works
+is in [docs/design.md](https://github.com/viridia/bevy_remote_driver/blob/main/docs/design.md),
+and what Bevy took from it in
+[docs/upstream.md](https://github.com/viridia/bevy_remote_driver/blob/main/docs/upstream.md).
+Discussion of end-to-end testing in Bevy is in
+[bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
 
 ## License
 

@@ -1,7 +1,7 @@
 """Runs plans: for each, builds the target, launches it, runs the steps, reports, closes it
 (DD4.3).
 
-    python3 <path to bevy_remote_driver>/client/run.py <plan.json | plan.py | directory>...
+    bevy-remote-driver <plan.json | plan.py | directory>...
 
 A directory stands for every `.py` and `.json` file in it. Plans run one after another; a failed
 plan does not stop the rest, and a summary follows the last report.
@@ -24,7 +24,7 @@ import traceback
 import urllib.error
 from pathlib import Path
 
-from driver import BrpError, Driver, StepFailed
+from .driver import BrpError, Driver, StepFailed
 
 STARTUP_SECONDS = 60
 EXIT_SECONDS = 3
@@ -47,6 +47,7 @@ def target_dir(cwd):
     """Cargo's target directory for the workspace at `cwd`, so `CARGO_TARGET_DIR` is respected."""
     result = subprocess.run(
         ["cargo", "metadata", "--format-version=1", "--no-deps"],
+        check=False,
         stdout=subprocess.PIPE,
         text=True,
         cwd=cwd,
@@ -108,7 +109,7 @@ def build(target, package, features, cwd):
     # leaving these out ends at "the build produced no example named …" below.
     if features:
         command += ["--features", ",".join(features)]
-    result = subprocess.run(command, stdout=subprocess.PIPE, text=True, cwd=cwd)
+    result = subprocess.run(command, check=False, stdout=subprocess.PIPE, text=True, cwd=cwd)
     if result.returncode != 0:
         raise PlanError(f"`{' '.join(command)}` failed in {cwd}")
     for line in result.stdout.splitlines():
@@ -197,8 +198,10 @@ def plans_in(paths):
     return plans
 
 
-def main(argv):
-    plans = plans_in(argv[1:])
+def main(argv=None):
+    """The `bevy-remote-driver` command: runs the plans `argv` names, and returns the exit
+    status."""
+    plans = plans_in(sys.argv[1:] if argv is None else argv)
     if not plans:
         print(__doc__.strip(), file=sys.stderr)
         return 2
@@ -296,4 +299,4 @@ def run_plan(plan_path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

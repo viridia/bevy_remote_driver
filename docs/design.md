@@ -143,7 +143,7 @@ targets of that name apart, and its `features` when the target declares `require
 skips such a target rather than refusing to build it, so a plan leaving them out fails as a target
 that does not exist.
 
-The step reference is the client's docstrings: `class Driver` in `client/driver.py` for selectors,
+The step reference is the client's docstrings: `class Driver` in `src/bevy_remote_driver/driver.py` for selectors,
 timeouts (DR3.4) and the JSON form, and each step method for itself. The instructions for writing a
 plan are [writing-plans.md](writing-plans.md) (DR7.4).
 
@@ -175,7 +175,7 @@ runs without compiling or importing anything, which `testbed/plans/smoke.json` i
 
 ### 4.3 A run
 
-`python3 <path to bevy_remote_driver>/client/run.py <plan>` is the one command (DR6.1). It:
+`bevy-remote-driver <plan>` is the one command (DR6.1). It:
 
 1. builds the target in the Cargo workspace that holds the plan, running cargo in the plan's
    directory (in the working directory, for a plan outside any workspace), with
@@ -300,7 +300,7 @@ are named. What such a name is computed *from* matters more than how many there 
 identity the screen already holds, such as a key or an index, rather than the text it draws: display
 text may be translated, and two rows can show the same label.
 
-An app adds BRP in its `main`, with the lines [writing-plans.md](writing-plans.md) gives, and
+An app adds BRP in its `main`, with the lines the [README](../README.md) gives, and
 enables the `bevy` crate's `bevy_remote` feature. Without the feature `Image` has no serialization
 registered, and the screenshot step panics the app inside `bevy_remote` rather than failing the
 step.
