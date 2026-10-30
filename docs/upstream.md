@@ -10,7 +10,7 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
 
 - **Diagnostics over BRP** ([bevy#25824](https://github.com/bevyengine/bevy/pull/25824)):
   `diagnostics.get` reads `frame_count`, which every wait measured in frames needs. The driver's
-  own `driver.diagnostics` is due to be removed in its favour.
+  client reads the count with it (DD3.4).
 - **Clicks in physical pixels** ([bevy#25890](https://github.com/bevyengine/bevy/pull/25890)):
   `CursorMoved` takes a `physical_position`, which is what `UiGlobalTransform` holds, so a client
   no longer divides by the scale factor.

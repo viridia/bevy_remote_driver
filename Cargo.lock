@@ -1515,7 +1515,6 @@ dependencies = [
  "bevy_diagnostic",
  "bevy_ecs",
  "bevy_remote",
- "bevy_time",
  "serde",
  "serde_json",
 ]

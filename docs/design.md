@@ -18,8 +18,8 @@ Two halves, joined by BRP over HTTP:
 app under test                          client (Python, standard library only)
   RemotePlugin, RemoteHttpPlugin          launches the app, waits for the port
   RemoteDriverPlugin                      runs a plan step by step
-    driver.select,                  <-->  writes input with BRP's own methods
-    driver.diagnostics                    saves screenshots, writes the report, closes the app
+    driver.select                   <-->  writes input with BRP's own methods
+                                          saves screenshots, writes the report, closes the app
 ```
 
 The plugin is small on purpose. It adds a server method only where BRP cannot answer from what is
@@ -103,15 +103,12 @@ hides into view, with `bevy_ui`'s `ScrollIntoView`, which moves every `overflow:
 
 ### 3.4 Diagnostics
 
-`driver.diagnostics` returns the latest value of each diagnostic in `DiagnosticsStore`, by path.
-Every wait measured in frames reads `frame_count` from it, which `FrameTimeDiagnosticsPlugin`
-records from `FrameCount`. That plugin is not in `DefaultPlugins`, so the driver's plugin adds it
-when it is missing (DR1.4). `is_plugin_added` sees only plugins added before the driver's, so an app
-that adds `FrameTimeDiagnosticsPlugin` too must add it first, or Bevy panics on the duplicate. A
-value is an `f64`, which holds a frame count exactly for longer than any test runs.
-
-The method predates BRP's own `diagnostics.get` (bevy#25824), which reads the same store; the client
-moves to it and the method goes (DD8).
+Every wait measured in frames reads the `frame_count` diagnostic with BRP's own `diagnostics.get`
+(bevy#25824). `FrameTimeDiagnosticsPlugin` records it from `FrameCount`. That plugin is not in
+`DefaultPlugins`, so the driver's plugin adds it when it is missing (DR1.4). `is_plugin_added`
+sees only plugins added before the driver's, so an app that adds `FrameTimeDiagnosticsPlugin` too
+must add it first, or Bevy panics on the duplicate. A value is an `f64`, which holds a frame count
+exactly for longer than any test runs.
 
 ## 4. Plans and the client
 

@@ -389,8 +389,11 @@ class Driver:
     # Reading the app.
 
     def frame(self):
-        """How many frames the app has run."""
-        return int(self._call("driver.diagnostics")["frame_count"])
+        """How many frames the app has run, as `FrameTimeDiagnosticsPlugin` counts them."""
+        found = self._call("diagnostics.get", {"paths": ["frame_count"]})["diagnostics"]
+        if not found or found[0]["value"] is None:
+            raise StepFailed("a frame_count diagnostic, from FrameTimeDiagnosticsPlugin", "none")
+        return int(found[0]["value"])
 
     def exit(self):
         self._call("world.write_message", {"message": APP_EXIT, "value": "Success"})

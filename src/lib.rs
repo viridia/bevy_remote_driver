@@ -38,7 +38,6 @@
 
 #![forbid(unsafe_code)]
 
-mod diagnostics;
 mod select;
 
 use bevy_app::{App, Plugin};
@@ -83,8 +82,7 @@ fn install(app: &mut App, port: u16) {
     }
     app.add_plugins((
         RemotePlugin::default()
-            .with_method_main(select::METHOD, select::process_request)
-            .with_method_main(diagnostics::METHOD, diagnostics::process_request),
+            .with_method_main(select::METHOD, select::process_request),
         RemoteHttpPlugin::default().with_port(port),
     ));
 }
@@ -113,7 +111,14 @@ mod tests {
         let mut app = App::new();
         install(&mut app, 0);
         let methods = app.world().resource::<RemoteMethods>();
-        for method in [select::METHOD, diagnostics::METHOD] {
+        // The driver's own, then the built-in ones the client calls.
+        for method in [
+            select::METHOD,
+            "diagnostics.get",
+            "input.click",
+            "input.key",
+            "input.type",
+        ] {
             assert!(methods.get(method).is_some(), "{method} is not registered");
         }
     }
