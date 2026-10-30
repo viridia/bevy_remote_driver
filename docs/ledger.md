@@ -29,7 +29,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | Upstream status: `ScrollIntoView` (bevy#26262, `fa57bd8a5`) and `input.click` (bevy#26333, `b85a36290`) merged on Bevy main; `input.key` and `input.type` filed as bevy#26342, skipping the plugin. `upstream.md` and DD8 say so; Next item 1 becomes deleting `driver.click` and moving keys and text to BRP; X6's gate is the bump; X1 becomes the move to a Python-only project, gated on Next 1–3, X6 and bevy#26120; X8's drag is proposed upstream beside `input.click`; new X9, clicking a sprite or mesh. Docs only. |
 | (pending) | `input.key` and `input.type` merged as bevy#26342 (`784b85d36`); `upstream.md` and DD8 list them as landed. Docs only. |
 | (pending) | Bevy main bumped to `784b85d` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. It brings `input.click`, `input.key`, `input.type` and `ScrollIntoView`, so Next items 1 and 4 (was X6) can start. It is the commit before a feathers regression (bevy#26369; `arbor_day`'s X67). Verified: clippy clean, 20 unit tests; `arbor_day`'s five plans; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9) at `54f38f3`, which differs only in that feathers change. |
-| (pending) | Next item 5: whether a client needs readiness, with a deterministic test of what BRP can see of a queued scene. Docs only. |
+| (pending) | What a BRP client can see of a queued scene, tested in `tests/scene_readiness.rs`: an asset reader holds the scene's inherited `.bsn` unloaded, and the world is checked after every update, which is what a request in `RemoteLast` sees. A queued scene is seen as nothing, then whole; an entity named outside its scene and `queue_apply_scene`d is seen partial, its name alone, until the scene loads; stepping `SpawnScene`, a look after each of its systems sees nothing, then whole. A `Handle` field alone does not make a scene wait, so `Ready` does not cover the assets a scene names, despite `SceneReady`'s doc. The related-list case is ignored (X10); stepping a scene that waits is not tested (X11). The umbrella dev-dependency gains `bevy_debug_stepping`. Verified: clippy clean on all targets, three tests pass and one is ignored, in parallel and on one thread. |
 
 ## Next
 
@@ -55,24 +55,13 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    ancestors' positions to tell whether anything moved. Since bevy#26262 the event acts on every
    `overflow: scroll` ancestor, not only the nearest `ScrollArea`. Verified by `panel.py`, whose
    clicks scroll.
-5. **Whether a client needs readiness.** By reading `bevy_scene` (2026-10-29), BRP cannot see a
-   scene half applied: `ResolvedScene::apply` writes an entity and its children in one call,
-   from an exclusive system in `SpawnScene`, and BRP answers in `RemoteLast`. What it can see is
-   a queued scene not yet applied, an empty entity, which a path of names does not match since
-   the name is the scene's. The exceptions are an entity named outside its scene, then
-   `queue_apply_scene`d, and `queue_spawn_related_scenes`, whose parent is whole before its
-   children; there, waiting on the root and assuming its descendants is the race, while
-   waiting on the entity a step needs is not. Test it deterministically rather than by
-   repeated runs, which pass by accident: a headless test queues a named scene whose
-   dependency it holds unloaded across several updates, then loads it, and after every update
-   checks that a `name_path` query finds either nothing or the whole subtree; the same for the
-   two exceptions, which must show the partial state, so the test is seen to catch one. Then
-   again with stepping (BRP's `stepping.*`, bevy#26200; the test alone enables
-   `bevy_debug_stepping`): `SpawnScene`, `Update` and `PostUpdate` added to `Stepping`, the
-   query after every `stepping.step_frame`, so the same holds at every system boundary, the
-   finest an outside client can see. If it holds, `ready=True` and `SceneReady` go (DD3.2,
-   `writing-plans.md`), bevy#26120 becomes a note on why a BRP client does not need it, and X1
-   loses its last upstream gate.
+5. **Delete readiness.** `tests/scene_readiness.rs` shows a BRP client sees a queued scene
+   whole or not at all, so waiting for the entity a step needs is enough. The exceptions, an
+   entity named outside its scene or given related scenes, show their own entity first; there a
+   plan waits for the descendant it needs, not the root. `ready=True`, `SceneReady` and its
+   observer go (DD3.2, `writing-plans.md`, `ready.rs`); bevy#26120 becomes a note on why a BRP
+   client does not need it, and X1 loses its last upstream gate. The test stays as the evidence.
+   Verified by the testbed plans and `arbor_day`'s, with `ready=True` removed from them.
 
 ## Decisions
 
@@ -159,6 +148,17 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   marker entity it spawns there for the click. *Gate:* the first plan that must click into the
   world. First user: Panoply's actors, whose player clicks an actor or fixture to interact with
   it (its Next item 2).
+- **X10** A queued scene list dropped while its dependencies load, reported as bevy#26383.
+  `QueuedScenes::spawn_queued` (`bevy_scene/src/spawn.rs`, 811 and 834 at `784b85d`) spawns a
+  related or plain scene list once its patch asset exists, which `queue_*` makes at once, rather
+  than once it is resolved as a scene's is; the spawn fails ("not been resolved yet") and the
+  list is gone. `related_scenes_are_seen_partial` is ignored on it. *Gate:* fixed in the Bevy we
+  build against; then un-ignore the test.
+- **X11** Stepping `SpawnScene` loses a scene that waits, reported as bevy#26384. Stepped, `resolve_scene_patches` and `spawn_queued` run on alternate frames, and
+  `spawn_queued` reads the dependency's `LoadedWithDependencies` before the patch is resolved, so
+  the entity waits forever; the inspector's stepping would hit it too. The stepped test uses a
+  scene without a dependency. *Gate:* fixed in the Bevy we build against; then step the held
+  scene.
 
 ## Notes
 

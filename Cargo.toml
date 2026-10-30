@@ -37,8 +37,9 @@ serde_json = "1"
 
 # For `examples/testbed.rs`. The umbrella's `bevy_remote` feature registers `Image`'s
 # serialization, without which a screenshot step panics the app rather than failing the step.
+# `bevy_debug_stepping` is for `tests/scene_readiness.rs`.
 [dev-dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["dynamic_linking", "bevy_remote"] }
+bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["dynamic_linking", "bevy_remote", "bevy_debug_stepping"] }
 bevy_time = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 
 [profile.dev]
