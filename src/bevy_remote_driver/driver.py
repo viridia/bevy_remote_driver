@@ -204,10 +204,15 @@ class Driver:
             matches = self._select(selector)
             if len(matches) != 1:
                 return False, lambda: self._shown(matches)
-            result = self._call(
-                "world.get_components",
-                {"entity": matches[0], "components": [component], "strict": False},
-            )
+            try:
+                result = self._call(
+                    "world.get_components",
+                    {"entity": matches[0], "components": [component], "strict": False},
+                )
+            except BrpError as error:
+                # The entity despawned between the query and the read, as one does when a screen
+                # rebuilds it, so look again.
+                return False, str(error)
             if component not in result["components"]:
                 return False, result["errors"].get(component, "no such component")
             found = result["components"][component]

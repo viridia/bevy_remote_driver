@@ -37,40 +37,41 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 28 | A Python-only project (was X1; D1): the Rust crate goes (`Cargo.toml`, `src/lib.rs` and its three unit tests), and an app enables BRP itself, with the lines `writing-plans.md`'s Setup now gives: `RemotePlugin`, `RemoteHttpPlugin` on `BEVY_REMOTE_DRIVER_PORT`, and `FrameTimeDiagnosticsPlugin`, only when the variable is set (DR1.5). The testbed becomes its own package, `testbed/`, with the setup in its `main`, `tests/scene_readiness.rs`, `Cargo.lock` and its plans (was `plans/testbed/`), which name `bin = "testbed"`. DR1.4, DR1.5, DD1, DD3.4, DD7, DD8, the README, AGENTS.md, D1 and D2 follow; chunk 31's gate is Bevy 0.21, the first release with the input methods. Verified: clippy clean on all targets in `testbed/`, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9). |
 | 29 | A Python package, `bevy-remote-driver`: `client/` becomes `src/bevy_remote_driver/` (`driver.py`, `run.py`, and `__init__.py` exporting `Between` and `Driver`), with `pyproject.toml` on `uv_build`, no dependencies (D5), `requires-python >= 3.11`, and `uv.lock`. The command is `bevy-remote-driver`, installed with `uv tool install git+…`; plans import `from bevy_remote_driver import Between`. 21 `unittest` tests in `tests/` cover selectors, field and reflection paths, `walk`, `subset`, `Between`, the PNG writer and plan loading. CI (`.github/workflows/ci.yml`): ruff 0.17.3, pinned since its default rules grow, and the tests on Python 3.11 and 3.14. ruff's fixes: two explicit `check=False`, one `walk` branch merged, formatting. The README is rewritten for users and PyPI (absolute links): a plan, installing, setting up the app (moved from `writing-plans.md`, which points to it), running plans, a compatibility table, status, licence; CI, licence and Bevy-tracking badges, the PyPI ones left to chunk 31. AGENTS.md, DD4.1, DD4.3 and DD7 follow. `arbor_day`'s plans stop running here, since `client/run.py` and `from driver import` are gone, until chunk 30. Verified: ruff clean; the tests on 3.11 and 3.12; from Panoply's directory, `uvx --from <this checkout> bevy-remote-driver testbed/plans`: `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9). Once pushed, `uvx --from git+https://github.com/viridia/bevy_remote_driver bevy-remote-driver` built `3fac10c` and printed its usage. |
 
+| 30 | Users on the package. `arbor_day` (its C165): the git dependency goes, a `RemoteDriverPlugin` of its own in `src/remote_driver.rs` holds the setup lines for the app and its example, and plans import `from bevy_remote_driver import Between`. `bevy_action_map` (its chunk 204): its copy, `crates/bevy_remote_driver`, is deleted with `docs/proposals/remote-driver.md` and six workspace pins only the copy used; the twelve examples include `examples/common/remote_driver.rs`; the `orbit` and `disasteroids` plans move to `plans/`, losing `ready=True`; its scripts drop the `DR` and `DD` anchors, and `xref.py` flags any left; its X33, X34 and X45 go (X3, X4 and D1 here). The copy's client steps were a subset of this one's, so nothing was ported. `expect` now looks again when its entity despawns between the query and the read, as a rebuilt row's does, rather than failing the step on BRP's "not found". D4 retires. Verified: `arbor_day` clippy clean, 144 tests, its five plans, with the command installed by `uv tool install git+…`; `bevy_action_map` `scripts/verify.sh`, and `disasteroids/pad.py` (16), `disasteroids/rebind.py` (21), `orbit/capture.py` (15), and `orbit/editor.py` (32) with this checkout's `expect` (`uv run --project`; `uvx --from <path>` served a cached build). Its `orbit/saved.py` fails: it reads back across launches what `editor.py` saved, which per-plan settings (chunk 7) prevents; chunk 33. |
+
 ## Next
 
-Chunks 30–31 are the road to a published Python package, and cross repos.
-
-30. **Users on the package.** `bevy_action_map`: diff its copy's client against this one for
-   anything its plans rely on, then delete `crates/bevy_remote_driver`; its examples gain the
-   setup lines, and its plans import the package and run from git as chunk 29 installs it. D4
-   retires, here and in its ledger. `arbor_day`: drop the Rust dependency, take the setup lines,
-   and move its plans to `from bevy_remote_driver import Between` and the `bevy-remote-driver`
-   command; its plans do not run until then (chunk 29). Its git dependency is held by its
-   `Cargo.lock` at a commit that still has the crate; a `cargo update` fails to find it. Panoply's
-   plans once it has them. Verified by each repo's plans.
 31. **Publish on PyPI at Bevy 0.21's release**, the first with the input methods, and the
    compatibility table's first row, superseding D1. Trusted Publishing from a release workflow
    run on a tag, so no token is stored. The author's account, recovered or new, with 2FA; check
    `bevy-remote-driver` is free first. Users' commands become `uvx bevy-remote-driver`. The
    README gains the PyPI version and Python versions badges. *Gate:* Bevy 0.21 released.
+32. **Panoply on the package.** Panoply builds an old copy of the plugin and client
+   (`crates/bevy_remote_driver`, forked before chunk 1) and runs `plans/smoke.py` with it. It
+   takes the setup lines, deletes the copy, and runs its plans with `bevy-remote-driver`, as
+   `arbor_day` did in chunk 30. Panoply is on Bevy 0.20.0, which lacks the input methods the
+   package calls. *Gate:* Panoply on Bevy 0.21 or on main past `784b85d`.
+33. **A restart step.** `driver.restart()` writes `AppExit`, waits for the app to close, and
+   launches it again with the same port, environment and settings directory, so a plan checks
+   that what the app saved comes back, in one plan, with no order between plans. The launch moves
+   from `run_plan` to something the driver can call again, and the report's log carries both
+   runs. First user: `bevy_action_map`'s `orbit/editor.py`, which absorbs `saved.py` (its chunk
+   205).
 
 ## Decisions
 
 - **D1** Unpublished: the client installs from git until chunk 31. Bevy took every server
   method the Rust half had (upstream.md), so since chunk 28 this is a Python-only project, and an
   app enables BRP itself.
-- **D2** Bevy is main, named by `git` and `branch = "main"`, the commit held by
-  `testbed/Cargo.lock`. Users that depend on Rust here name Bevy the same way, since Cargo treats a
-  branch and a rev as different sources and would build two Bevys; bump them together. Once none
-  does (chunk 30), only the testbed is bound by it.
+- **D2** The testbed's Bevy is main, named by `git` and `branch = "main"`, the commit held by
+  `testbed/Cargo.lock`. No user depends on Rust here since chunk 30, so an app's Bevy is its own;
+  it needs only the input methods (`784b85d` or later).
 - **D3** `run.py` runs cargo in the plan's directory, so the workspace that holds the plan is the
   one built, wherever the command is run from; a plan with no `Cargo.toml` at or above it builds
   the working directory's. Output goes under `cargo metadata`'s `target_directory`, which respects `CARGO_TARGET_DIR`. A plan
   names a `bin` or an `example`, exactly one.
-- **D4** `bevy_action_map` keeps its own copy (`crates/bevy_remote_driver`), since it is a published
-  crate whose tests others may want to run without a second repo. This repo is the canonical copy;
-  a fix that crate needs is copied across by hand, and the reverse.
+- **D4** Retired in chunk 30. `bevy_action_map` kept its own copy (`crates/bevy_remote_driver`)
+  while the driver was Rust and Python together; its plans now run on the package.
 - **D5** The client uses Python's standard library only (DD1), so the package has no
   dependencies and installing it brings nothing else.
 
@@ -165,6 +166,6 @@ Chunks 30–31 are the road to a published Python package, and cross repos.
 
 - Origin: built in `bevy_action_map` from its chunk 145 (a BRP spike) onward; Panoply forked it at
   `bevy_action_map` commit `f641559`. Items 1–4 of Next were that repo's chunks 197, 202, 198 and
-  199; X1–X4 were its X45, X32, X33 and X34. `bevy_action_map`'s copy stays (D4), so those entries
-  may stay in its roadmap for its own copy. `upstream.md` began as the author's gist of
+  199; X1–X4 were its X45, X32, X33 and X34. Its copy went in chunk 30, and with it those entries,
+  but for X32, the mapper's side of X2. `upstream.md` began as the author's gist of
   2026-09-26, a supplement to bevy#25894.

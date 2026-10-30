@@ -35,10 +35,8 @@ app the driver's own plans run against.
 - Prose follows the "House style" section of `../bevy_action_map/CLAUDE.md`. A user-facing doc
   (README, `writing-plans.md`, docstrings) gets a separate polish pass once its content is
   settled.
-- Users: `arbor_day` ran the client from a checkout's `client/run.py`, and depends on the old Rust
-  crate by git; its plans do not run until it moves to the package (chunk 30). Panoply has a copy of its own (`crates/bevy_remote_driver`).
-  `bevy_action_map` keeps a copy too, as a published crate whose tests others may run; a fix
-  here that it needs is copied across by hand.
+- Users: `arbor_day` and `bevy_action_map` run their plans on the package, installed from git.
+  Panoply still has an old copy of its own (`crates/bevy_remote_driver`), Next item 32.
 
 ## Verify
 
