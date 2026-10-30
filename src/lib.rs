@@ -1,7 +1,7 @@
 //! Drive a running Bevy app from outside, for automated tests.
 //!
-//! Add [`RemoteDriverPlugin`] to your app, and a test client can find entities by name, count
-//! frames and click on UI nodes, all over the [Bevy Remote Protocol](bevy_remote). Everything the protocol already does, such as querying components,
+//! Add [`RemoteDriverPlugin`] to your app, and a test client can find entities by name and count
+//! frames, all over the [Bevy Remote Protocol](bevy_remote). Everything the protocol already does, such as querying components,
 //! writing input messages and taking screenshots, the client does through the protocol's own
 //! methods.
 //!
@@ -39,14 +39,11 @@
 #![forbid(unsafe_code)]
 
 mod diagnostics;
-mod input;
-mod locate;
 mod select;
 
 use bevy_app::{App, Plugin};
 use bevy_diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy_ecs::schedule::IntoScheduleConfigs;
-use bevy_remote::{RemoteLast, RemotePlugin, RemoteSystems, http::RemoteHttpPlugin};
+use bevy_remote::{RemotePlugin, http::RemoteHttpPlugin};
 
 const PORT_VARIABLE: &str = "BEVY_REMOTE_DRIVER_PORT";
 
@@ -87,16 +84,9 @@ fn install(app: &mut App, port: u16) {
     app.add_plugins((
         RemotePlugin::default()
             .with_method_main(select::METHOD, select::process_request)
-            .with_method_main(locate::METHOD, locate::process_request)
-            .with_method_main(input::CLICK, input::process_click)
             .with_method_main(diagnostics::METHOD, diagnostics::process_request),
         RemoteHttpPlugin::default().with_port(port),
-    ))
-    .init_resource::<input::InputQueue>()
-    .add_systems(
-        RemoteLast,
-        input::write_due.after(RemoteSystems::ProcessRequests),
-    );
+    ));
 }
 
 #[cfg(test)]
@@ -123,7 +113,7 @@ mod tests {
         let mut app = App::new();
         install(&mut app, 0);
         let methods = app.world().resource::<RemoteMethods>();
-        for method in [select::METHOD, locate::METHOD, diagnostics::METHOD] {
+        for method in [select::METHOD, diagnostics::METHOD] {
             assert!(methods.get(method).is_some(), "{method} is not registered");
         }
     }

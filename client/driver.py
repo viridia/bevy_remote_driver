@@ -9,15 +9,12 @@ import time
 import urllib.request
 import zlib
 
-import keys
-
 DEFAULT_TIMEOUT = {"frames": 300, "seconds": 10}
 # How often a wait asks again. A round trip is about a millisecond, and a frame at least eight.
 POLL = 0.005
 
 WINDOW = "bevy_window::window::Window"
 PRIMARY_WINDOW = "bevy_window::window::PrimaryWindow"
-KEYBOARD_INPUT = "bevy_input::keyboard::KeyboardInput"
 GAMEPAD_CONNECTION = "bevy_input::gamepad::GamepadConnectionEvent"
 RAW_GAMEPAD = "bevy_input::gamepad::RawGamepadEvent"
 SCREENSHOT = "bevy_render::view::window::screenshot::Screenshot"
@@ -229,14 +226,9 @@ class Driver:
         scrolled ancestor hides it. The button is released `hold` frames after the press, so a
         larger `hold` is a press and hold, for a control that acts while held."""
         entity = self._one(selector)
-        if self._sent_at is not None:
-            self._until(self._sent_at + 1)
-        try:
-            landed = self._call("driver.click", {"entity": entity, "hold": hold})["frame"]
-        except BrpError as err:
-            raise StepFailed(f"{selector} to be a UI node in a window", str(err)) from None
-        # As if the release were written the frame before it is read, so the next write follows it.
-        self._sent_at = landed - 1
+        self._input(
+            "input.click", {"entity": entity, "hold": hold}, f"{selector} to be a UI node in a window"
+        )
 
     @step
     def key(self, code, hold=1, logical_key=None, text=None):
@@ -244,21 +236,19 @@ class Driver:
 
         `code` is a `KeyCode` variant name, such as `"Escape"` or `"KeyA"`. `logical_key` and
         `text` default to what a US keyboard sends for it; give them for another layout, or for a
-        key the client does not know.
+        key without a US meaning.
         """
-        self._key(code, "Pressed", logical_key, text)
-        self._until(self._sent_at + hold)
-        self._key(code, "Released", logical_key, text)
+        self._key(code, {"hold": hold}, logical_key, text)
 
     @step
     def press(self, code, logical_key=None, text=None):
         """Presses a key and leaves it held. Takes the same arguments as `key`."""
-        self._key(code, "Pressed", logical_key, text)
+        self._key(code, {"state": "Pressed"}, logical_key, text)
 
     @step
     def release(self, code, logical_key=None, text=None):
         """Releases a held key. Takes the same arguments as `key`."""
-        self._key(code, "Released", logical_key, text)
+        self._key(code, {"state": "Released"}, logical_key, text)
 
     @step
     def message(self, type_path, value):
@@ -327,21 +317,7 @@ class Driver:
         No release follows, and no frame count is read after the press, since either would be
         sent to an app that has gone.
         """
-        if self._sent_at is not None:
-            self._until(self._sent_at + 1)
-        known = keys.logical(code)
-        if known is None:
-            raise StepFailed(f"a key the client knows for {code}", code)
-        logical_key, text = known
-        value = {
-            "key_code": code,
-            "logical_key": logical_key,
-            "state": "Pressed",
-            "text": text,
-            "repeat": False,
-            "window": self.window,
-        }
-        self._call("world.write_message", {"message": KEYBOARD_INPUT, "value": value})
+        self._key(code, {"state": "Pressed"})
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
             try:
@@ -355,16 +331,9 @@ class Driver:
     @step
     def type(self, text):
         """Types a string as a US keyboard would, holding Shift where a character needs it."""
-        for char in text:
-            if char not in keys.CHARACTERS:
-                raise StepFailed("a character on a US keyboard", repr(char))
-            code, shifted = keys.CHARACTERS[char]
-            if shifted:
-                self._key("ShiftLeft", "Pressed")
-            self._key(code, "Pressed", {"Character": char}, char)
-            self._key(code, "Released", {"Character": char}, char)
-            if shifted:
-                self._key("ShiftLeft", "Released")
+        self._input(
+            "input.type", {"text": text, "window": self.window}, f"{text!r} typed on a US keyboard"
+        )
 
     @step
     def pad(self, control, value=None):
@@ -468,23 +437,25 @@ class Driver:
 
     # Writing to the app.
 
-    def _key(self, code, state, logical_key=None, text=None):
-        if logical_key is None:
-            known = keys.logical(code)
-            if known is None:
-                raise StepFailed(f"a key the client knows, or a logical_key for {code}", code)
-            logical_key, text = known
-        self._send(
-            KEYBOARD_INPUT,
-            {
-                "key_code": code,
-                "logical_key": logical_key,
-                "state": state,
-                "text": text,
-                "repeat": False,
-                "window": self.window,
-            },
-        )
+    def _key(self, code, how, logical_key=None, text=None):
+        """`input.key` for `code`, with `how` its `hold` or its `state`."""
+        params = {"key_code": code, "window": self.window, **how}
+        if logical_key is not None:
+            params["logical_key"] = logical_key
+        if text is not None:
+            params["text"] = text
+        self._input("input.key", params, f"{code} as a key")
+
+    def _input(self, method, params, expected):
+        """One of BRP's `input.*` methods, which land each event on a frame of its own."""
+        if self._sent_at is not None:
+            self._until(self._sent_at + 1)
+        try:
+            landed = self._call(method, params)["frame"]
+        except BrpError as err:
+            raise StepFailed(expected, str(err)) from None
+        # As if the last event were written the frame before it is read, so the next write follows.
+        self._sent_at = landed - 1
 
     def _pad(self, control, value):
         """One raw gamepad message, connecting the pad first if this is the plan's first."""

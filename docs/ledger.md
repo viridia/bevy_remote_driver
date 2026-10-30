@@ -31,16 +31,10 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 21 | What a BRP client can see of a queued scene, tested in `tests/scene_readiness.rs`: an asset reader holds the scene's inherited `.bsn` unloaded, and the world is checked after every update, which is what a request in `RemoteLast` sees. A queued scene is seen as nothing, then whole; an entity named outside its scene and `queue_apply_scene`d is seen partial, its name alone, until the scene loads; stepping `SpawnScene`, a look after each of its systems sees nothing, then whole. A `Handle` field alone does not make a scene wait, so `Ready` does not cover the assets a scene names, despite `SceneReady`'s doc. The related-list case is ignored (X10); stepping a scene that waits is not tested (X11). The umbrella dev-dependency gains `bevy_debug_stepping`. Verified: clippy clean on all targets, three tests pass and one is ignored, in parallel and on one thread. |
 | 22 | Readiness deleted (was Next 5): `SceneReady`, its observer and `ready.rs` go, with the `bevy_scene` dependency, and `present` loses `ready`. Every step that names an entity now waits for exactly one match (the client's `_one`), so a plan acts on what a step needs without waiting for its screen first. DD3.2 says why no readiness is needed; DD3.1, DD8, `upstream.md` (bevy#26120 under Not needed), DR3.6 and `writing-plans.md` follow. X1 loses bevy#26120 from its gate. New X12 (clicks waiting until a node can take them) and X13 (screenshots waiting for loading). `ready=True` removed from the testbed's four plans and `arbor_day`'s seven. Verified: clippy clean on all targets, 19 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans, against its git copy of the plugin. Its three `plans/gallery/` plans were edited but not run. |
 | 23 | The road to a published Python package as Next items 5–8, across repos: X1 becomes item 5; then packaging, moving `bevy_action_map`, `arbor_day` and the testbed onto the package (retiring D4), and publishing on PyPI at Bevy 0.20's release. X8 and X9 point at item 5. Docs only. |
+| 24 | Clicks, keys and text from BRP: the client's `click` calls `input.click`, and `key`, `press`, `release`, `exits` and `type` call `input.key` and `input.type`, through one `_input` that keeps each input a frame after the last. `driver.click` and its queue go (`input.rs`), and so does `driver.locate` (`locate.rs`), which nothing called once `input.click` scrolled into view itself; chunk 27 is folded in. The client's `KeyboardInput` messages and `keys.py`'s US table go. Dependencies drop to `bevy_app`, `bevy_diagnostic`, `bevy_ecs` and `bevy_remote`. DD3.3, DD4.5, DD5.1, DD5.2, DD8 and `upstream.md` follow; no step's arguments changed. Verified: clippy clean on all targets, 8 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans. |
 
 ## Next
 
-24. **Delete `driver.click`; keys and text from BRP.** Past bevy#26333, BRP's `input.click`
-   does what `driver.click` does (DD5.1), scrolling into view included, so the client's `click`
-   calls it and the method goes; `driver.locate` stays until chunk 27. Past bevy#26342, the client's
-   `key`, `press`, `release`, `exits` and `type` steps call `input.key` and `input.type`, and its
-   `KeyboardInput` messages and `CHARACTERS` table go (DD5.2). Update DD5 and DD8, and
-   `writing-plans.md` if a step's arguments change. Verified by the testbed plans, `typing.py`
-   for the keys.
 25. **Delete `driver.diagnostics`.** Past bevy#25824, BRP's own `diagnostics.get` reads
    `frame_count` as `driver.diagnostics` does (DD3.4). The client switches to it and the method
    goes. `FrameTimeDiagnosticsPlugin` is still the driver's to add, since it records the count and
@@ -51,11 +45,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    path from `Name` and `ChildOf` queried with it, or reports entity ids. Update DD3.1, DD8's
    row, `writing-plans.md` where it describes selectors, and X7. Verified by the testbed plans,
    since every click selects.
-27. **Scroll into view with Bevy's `ScrollIntoView`** (was X6, its gate passed): `driver.locate`
-   triggers the event in place of its own `ScrollPosition` arithmetic (DD3.3), and compares
-   ancestors' positions to tell whether anything moved. Since bevy#26262 the event acts on every
-   `overflow: scroll` ancestor, not only the nearest `ScrollArea`. Verified by `panel.py`, whose
-   clicks scroll.
 
 Chunks 28–31 are the road to a published Python package, and cross repos.
 

@@ -22,17 +22,13 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
 - **Scrolling a node into view on request**
   ([bevy#26262](https://github.com/bevyengine/bevy/pull/26262)): `ScrollIntoView` is in
   `bevy_ui`, reflected, so a client can send it with `world.trigger_event`, and scrolls every
-  `overflow: scroll` ancestor, not only the nearest `ScrollArea`. It replaces the scrolling in
-  `driver.locate` (DD3.3). A client can already read the rest of `driver.locate`, a node's
-  position and the window it is drawn in, with `world.query`.
+  `overflow: scroll` ancestor, not only the nearest `ScrollArea`. `input.click` uses it (DD3.3).
 - **Clicks as a server method** ([bevy#26333](https://github.com/bevyengine/bevy/pull/26333)):
   `input.click` takes a UI node or a window point, scrolls a hidden node into view, and returns
-  the frame that reads the release. The driver's own `driver.click` (DD5.1) is due to be removed
-  in its favour.
+  the frame that reads the release. The client's `click` calls it (DD5.1).
 - **Keys and text as server methods**
   ([bevy#26342](https://github.com/bevyengine/bevy/pull/26342)): `input.key` and `input.type`, on
-  `input.click`'s queue. They replace the client's `KeyboardInput` messages and its US key table
-  (DD5.2).
+  `input.click`'s queue. The client's keys and `type` call them (DD5.2).
 
 ## Not needed
 

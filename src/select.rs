@@ -67,23 +67,6 @@ impl Selector<'_, '_> {
         }
         Ok(matches)
     }
-
-    /// The single entity a path matches, or an error listing what it matched instead.
-    pub fn select_one(&self, path: &[String]) -> Result<Entity, BrpError> {
-        let mut matches = self.select(path)?;
-        if matches.len() == 1 {
-            return Ok(matches.remove(0).entity);
-        }
-        Err(BrpError {
-            code: error_codes::INVALID_PARAMS,
-            message: format!(
-                "{} matched {} entities, not one",
-                path.join("/"),
-                matches.len()
-            ),
-            data: serde_json::to_value(&matches).ok(),
-        })
-    }
 }
 
 pub(crate) fn process_request(In(params): In<Option<Value>>, selector: Selector) -> BrpResult {

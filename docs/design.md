@@ -18,7 +18,7 @@ Two halves, joined by BRP over HTTP:
 app under test                          client (Python, standard library only)
   RemotePlugin, RemoteHttpPlugin          launches the app, waits for the port
   RemoteDriverPlugin                      runs a plan step by step
-    driver.select, driver.locate,   <-->  writes input with BRP's own methods
+    driver.select,                  <-->  writes input with BRP's own methods
     driver.diagnostics                    saves screenshots, writes the report, closes the app
 ```
 
@@ -96,21 +96,10 @@ time is the right measure there, where the app's own logic is measured in frames
 
 ### 3.3 Where a node is drawn
 
-`driver.locate { path }` resolves one UI node and returns `{ window, physical }`: the window it is
-drawn in, and its centre in physical pixels, `UiGlobalTransform`'s translation as it stands. The
-window is the one the node's camera renders to, read from `ComputedUiTargetCamera`, which Bevy
-propagates from a root's `UiTargetCamera`; a node with no camera falls back to the primary window. A
-node drawn to an image rather than a window is refused.
-
-A node a scrolled ancestor hides is scrolled into view first: each ancestor with
-`overflow: scroll` on an axis where the node lies outside it gets its `ScrollPosition` moved by the
-least that shows the whole node (its start, if the node is bigger than the view), within the
-content's range, and the method returns `{ scrolled: true }` in place of a position. Ancestors are
-taken nearest first, and each scroll moves the node within the views around it by what it applied,
-so one pass scrolls them all; layout moves the node on the next frame, when a client asks again.
-Bevy's `ScrollIntoView` event does the same, but only for the nearest `ScrollArea`
-(`bevy_ui_widgets`), until bevy#26262; `ScrollPosition` covers any scrolled node. A click
-(`driver.click`, DD5.1) resolves and scrolls its node the same way.
+The driver does not locate nodes itself. BRP's `input.click` (5.1) finds the window a UI node is
+drawn in and its centre in physical pixels, and first scrolls a node that a scrolled ancestor
+hides into view, with `bevy_ui`'s `ScrollIntoView`, which moves every `overflow: scroll` ancestor
+(bevy#26262). A node drawn to an image rather than a window is refused.
 
 ### 3.4 Diagnostics
 
@@ -247,8 +236,8 @@ What made the driver's tests reliable, and what another client must do for a pla
 - **App logic is timed in frames, loading in seconds** (DD3.2). A covered window can run at half its
   frame rate, while assets load on IO threads regardless.
 - **A screenshot brings its window forward first, and an all-zero capture fails** (DD4.4).
-- **A key carries its `logical_key` and `text`**, derived from the key code for a US layout, so
-  `type` produces what a real keyboard would (DD5.2).
+- **Clicks, keys and text go through BRP's `input.*` methods**, which build Bevy's own events, so
+  a change to their shape is Bevy's to keep working rather than every client's (DD5.1, DD5.2).
 - **A virtual gamepad is an empty entity**, a `GamepadConnectionEvent` naming it, then
   `RawGamepadEvent`s, reporting no vendor or product id (DD5.3).
 
@@ -256,30 +245,23 @@ What made the driver's tests reliable, and what another client must do for a pla
 
 ### 5.1 Clicks
 
-`driver.click { entity, button, hold }`, or `{ window, position }` in physical pixels for a point
-that is not a UI node, queues three `WindowEvent`s, each on its own frame: `CursorMoved` to the
-node's centre, given as a `physical_position` from which `bevy_window` derives the logical one,
-`MouseButtonInput` pressed, then released `hold` frames later. Picking needs the cursor to have
-moved before the press, and a press and a release in the same frame are indistinguishable from a
-tap the app may treat differently. The events are Bevy's own types, built in the plugin, so a
-change to their shape is a compile error there rather than a runtime failure in every client.
+A click is BRP's `input.click { entity, hold }` (bevy#26333), which queues three `WindowEvent`s,
+each on its own frame: `CursorMoved` to the node's centre, the press, then the release `hold`
+frames later. Picking needs the cursor to have moved before the press, and a press and a release
+in the same frame are indistinguishable from a tap the app may treat differently. A hidden node is
+scrolled into view first (3.3). The method returns `{ frame }`, the frame that reads the release.
 
-The queue is a resource of events, each with the frame that reads it, and every event is due at
-least a frame after the one before, across calls too. A system in `RemoteLast`, after BRP has
-handled requests, writes the events that are due, so what is written is read on the next frame,
-as with `world.write_message`. `FrameCount` advances in `Last`, before that, so it already counts
-the frame that reads them, as the `frame_count` diagnostic numbers it. The method returns
-`{ frame }`, the frame that reads the release, and the client's next write follows it. A node is
-scrolled into view as DD3.3 describes, and its cursor event then waits a frame for layout; the
-node's centre is read when the event is written, so it is where layout put it.
+`input.key` and `input.type` share its queue, so one plan's inputs land in order, a frame apart.
+Messages the client writes itself, such as a gamepad's (5.3), are not on that queue, so the client
+sends each input on the frame after the one the last input returned, whichever way it was sent.
 
 ### 5.2 Keys and text
 
-A key is a `KeyboardInput` message naming the primary window. The client derives `logical_key` and
-`text` from the key code for the printable keys of a US layout and the common named keys, so `type`
-produces what a real keyboard would. A test that needs another layout, or a key the table lacks,
-supplies both itself. The message goes to `KeyboardInput` directly rather than through
-`WindowEvent`, which is what was measured (DD2).
+A key is BRP's `input.key { key_code, hold }` and text is `input.type { text }` (bevy#26342), both
+to the primary window. Without a `logical_key`, the server takes it and `text` from a US layout,
+and `input.type` holds Shift where a character needs it, so `type` produces what a real keyboard
+would. A test that needs another layout supplies `logical_key` and `text` itself. `press`,
+`release` and `exits` send a `state` alone: a press with no release, or a release.
 
 ### 5.3 Gamepads
 
@@ -336,7 +318,7 @@ step. The plugin is inert unless the port variable is set.
 | --- | --- | --- |
 | Selection by name path | upstream, done: a filter on `world.query` (bevy#26250) | any app's test wants it, and it needs only `Name` and `ChildOf` |
 | Waiting for a scene | the client, by name | a request sees a scene whole or not at all (3.2), so no readiness state is needed (bevy#26120 withdrawn) |
-| Locating a UI node | the client, with upstream's `ScrollIntoView` (bevy#26262) | its position and window are reflected components; only the scrolling needs the plugin |
+| Locating a UI node | upstream, done: inside `input.click` (bevy#26333), scrolling with `ScrollIntoView` (bevy#26262) | a click is what needs a node's position, so the click finds it |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
 | Clicks, keys and text | upstream, done: `input.click` (bevy#26333), `input.key` and `input.type` (bevy#26342) | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
 | Gamepads | the client | the messages are reflected and writable (bevy#25904) |
