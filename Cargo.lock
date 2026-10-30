@@ -1513,10 +1513,7 @@ dependencies = [
  "bevy",
  "bevy_app",
  "bevy_diagnostic",
- "bevy_ecs",
  "bevy_remote",
- "serde",
- "serde_json",
 ]
 
 [[package]]

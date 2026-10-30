@@ -33,20 +33,14 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 23 | The road to a published Python package as Next items 5–8, across repos: X1 becomes item 5; then packaging, moving `bevy_action_map`, `arbor_day` and the testbed onto the package (retiring D4), and publishing on PyPI at Bevy 0.20's release. X8 and X9 point at item 5. Docs only. |
 | 24 | Clicks, keys and text from BRP: the client's `click` calls `input.click`, and `key`, `press`, `release`, `exits` and `type` call `input.key` and `input.type`, through one `_input` that keeps each input a frame after the last. `driver.click` and its queue go (`input.rs`), and so does `driver.locate` (`locate.rs`), which nothing called once `input.click` scrolled into view itself; chunk 27 is folded in. The client's `KeyboardInput` messages and `keys.py`'s US table go. Dependencies drop to `bevy_app`, `bevy_diagnostic`, `bevy_ecs` and `bevy_remote`. DD3.3, DD4.5, DD5.1, DD5.2, DD8 and `upstream.md` follow; no step's arguments changed. Verified: clippy clean on all targets, 8 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans. |
 | 25 | The frame count from BRP: the client's `frame` reads `frame_count` with `diagnostics.get`, failing the step if the diagnostic is missing, and `driver.diagnostics` goes (`diagnostics.rs`, with the `bevy_time` dev-dependency). `FrameTimeDiagnosticsPlugin` is still the driver's to add. `installing_registers_the_methods` also checks the built-in methods the client calls: `diagnostics.get`, `input.click`, `input.key` and `input.type`. DD3.4 and `upstream.md` follow. Verified: clippy clean on all targets, 7 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans. |
+| 26 | Selectors from BRP: the client's `_select` sends `world.query` with a `name_path` filter, refusing an empty selector, and `driver.select` goes (`select.rs`), the plugin's last server method. A number in a list selector is now a child index (DD3.1, X7). A failing step's report still gives each match's full path, which the client builds from every entity's `Name` and `ChildOf` in one query, made only when the step fails (`_shown`; `_wait` takes a report as a function). The plugin is now only setup; `bevy_ecs`, `serde` and `serde_json` go. DD1, DD3.1, DD8, `upstream.md` and `class Driver`'s docstring follow. Verified: clippy clean on all targets, 3 unit tests, `scene_readiness` (3, one ignored); a throwaway testbed plan matched `["Menu", 0]` and reported `absent("Start")`'s match as `Menu/Start`; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans. |
 
 ## Next
-
-26. **Delete `driver.select`.** Past bevy#26250, `world.query` takes a `name_path` filter
-   (DD3.1). Its segments also take a number, the Nth child, which covers part of X7. It returns
-   entities only, without `driver.select`'s per-match name path, so the client builds a report's
-   path from `Name` and `ChildOf` queried with it, or reports entity ids. Update DD3.1, DD8's
-   row, `writing-plans.md` where it describes selectors, and X7. Verified by the testbed plans,
-   since every click selects.
 
 Chunks 28–31 are the road to a published Python package, and cross repos.
 
 28. **A Python-only project** (was X1; D1): the Rust crate goes, and an app enables BRP itself.
-   After chunks 24–27 the plugin holds only its setup: `RemotePlugin` and `RemoteHttpPlugin` on the
+   The plugin holds only its setup: `RemotePlugin` and `RemoteHttpPlugin` on the
    port `run.py` sets in the environment, inert without it (DR1.5), and
    `FrameTimeDiagnosticsPlugin`. The setup becomes a few lines in an app's `main`, which
    `writing-plans.md` gives and the testbed uses. Verified by the testbed plans.
@@ -108,9 +102,9 @@ Chunks 28–31 are the road to a published Python package, and cross repos.
   as `expect` does for a component. They read the file the app wrote, so a plan calls them after
   the app has saved (on exit, or once its deferred save has run). Python's `tomllib` (3.11 and
   later) parses TOML, so D5 holds. *Gate:* a plan whose subject is what an app saves.
-- **X7** Richer entity selectors than a path of `Name`s (DD3.1): an index for the Nth match or
-  child, given as a number in the list form, or a CSS-like syntax, the model Bevy UI authors know
-  best. Value paths are `expect`'s `at`, which needed none of this. *Gate:* a plan that must reach
+- **X7** Richer entity selectors than a path of `Name`s (DD3.1): an index for the Nth match, or
+  a CSS-like syntax, the model Bevy UI authors know best. A child index, a number in the list
+  form, came with `name_path` (chunk 26). Value paths are `expect`'s `at`, which needed none of this. *Gate:* a plan that must reach
   an entity it cannot name, such as one row of a list built from data without computed names.
 - **X8** Drags, and plans that record a demo or tutorial (the author, 2026-10-26). A drag is
   `input.click`'s press, a `CursorMoved` each frame along a path, and the release, on the same

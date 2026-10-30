@@ -1,9 +1,8 @@
 //! Drive a running Bevy app from outside, for automated tests.
 //!
-//! Add [`RemoteDriverPlugin`] to your app, and a test client can find entities by name and count
-//! frames, all over the [Bevy Remote Protocol](bevy_remote). Everything the protocol already does, such as querying components,
-//! writing input messages and taking screenshots, the client does through the protocol's own
-//! methods.
+//! Add [`RemoteDriverPlugin`] to your app, and a test client can drive it over the [Bevy Remote
+//! Protocol](bevy_remote): finding entities by name, sending input, counting frames and taking
+//! screenshots, all with the protocol's own methods. The plugin only sets the protocol up.
 //!
 //! ```ignore
 //! App::new()
@@ -20,7 +19,7 @@
 //!
 //! # Naming entities for a test
 //!
-//! A test selects entities by a path of [`Name`](bevy_ecs::name::Name)s, such as
+//! A test selects entities by a path of `Name`s, such as
 //! `["Settings", "Audio", "Volume"]`: an entity named `Volume` somewhere below one named `Audio`,
 //! itself somewhere below `Settings`. Entities without a name in between are skipped, so a name is
 //! needed only on what a test refers to. In a BSN scene, `#Volume` gives an entity its name.
@@ -37,8 +36,6 @@
 //! serialization registered, and a screenshot step panics the app instead of failing the step.
 
 #![forbid(unsafe_code)]
-
-mod select;
 
 use bevy_app::{App, Plugin};
 use bevy_diagnostic::FrameTimeDiagnosticsPlugin;
@@ -81,8 +78,7 @@ fn install(app: &mut App, port: u16) {
         app.add_plugins(FrameTimeDiagnosticsPlugin::default());
     }
     app.add_plugins((
-        RemotePlugin::default()
-            .with_method_main(select::METHOD, select::process_request),
+        RemotePlugin::default(),
         RemoteHttpPlugin::default().with_port(port),
     ));
 }
@@ -111,9 +107,9 @@ mod tests {
         let mut app = App::new();
         install(&mut app, 0);
         let methods = app.world().resource::<RemoteMethods>();
-        // The driver's own, then the built-in ones the client calls.
+        // The built-in methods the client calls.
         for method in [
-            select::METHOD,
+            "world.query",
             "diagnostics.get",
             "input.click",
             "input.key",

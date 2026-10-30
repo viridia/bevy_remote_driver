@@ -17,15 +17,14 @@ Two halves, joined by BRP over HTTP:
 ```
 app under test                          client (Python, standard library only)
   RemotePlugin, RemoteHttpPlugin          launches the app, waits for the port
-  RemoteDriverPlugin                      runs a plan step by step
-    driver.select                   <-->  writes input with BRP's own methods
+  RemoteDriverPlugin              <-->  runs a plan step by step
+                                          writes input with BRP's own methods
                                           saves screenshots, writes the report, closes the app
 ```
 
-The plugin is small on purpose. It adds a server method only where BRP cannot answer from what is
-already reflected, and each of those has an upstream destination (DD8). Everything else, including
-all input, goes through BRP's built-in methods (DR1.3), and the client is where the driver's actual
-work happens.
+The plugin adds no server methods: selecting, input and the frame count are all BRP's built-in
+methods (DR1.3, DD8), and the client is where the driver's actual work happens. The plugin only
+sets BRP up.
 
 `RemoteDriverPlugin` adds `RemotePlugin` and `RemoteHttpPlugin` itself, and only when the
 environment variable `BEVY_REMOTE_DRIVER_PORT` is set, on that port. Without it the plugin is
@@ -62,19 +61,21 @@ failing.
 
 ### 3.1 Selectors
 
-`driver.select { path }` returns every entity the path matches (DR2.1). A path is an array of names.
-The last name matches an entity's `Name` exactly; each earlier name must match one of that entity's
-ancestors, in order from the root down, at any depth. `["Settings", "Jump", "Rebind"]` is an entity
-named `Rebind` with an ancestor `Jump` that itself has an ancestor `Settings`.
+A selector is `world.query`'s `name_path` filter (bevy#26250), which returns every entity the path
+matches (DR2.1). A path is an array. The last name matches an entity's `Name` exactly; each earlier
+name must match one of that entity's ancestors, in order from the root down, at any depth.
+`["Settings", "Jump", "Rebind"]` is an entity named `Rebind` with an ancestor `Jump` that itself
+has an ancestor `Settings`. A number in the path is a child index: `["Settings", 0]` is the first
+child of `Settings`. A path cannot start with one.
 
 An array needs no escaping, since a `Name` may contain any character, and the server needs no
 parser. The client also takes a path as a string, `"Settings/Jump/Rebind"`, and splits it on `/`
-before sending it; a name containing `/` is written in the array form. Reports print a path joined
-with `/`.
+before sending it; a name containing `/`, and an index, are written in the array form.
 
-The method walks every entity with a `Name` and checks its `ChildOf` chain, which is linear in named
-entities and fine at a test's scale. A step that needs one entity waits until exactly one matches,
-and at its timeout reports the matches with their full name paths (DR2.2).
+A step that needs one entity waits until exactly one matches, and at its timeout reports the
+matches with their full name paths (DR2.2), joined with `/`. The query returns entities only, so
+the client builds each path from every entity's `Name` and `ChildOf`, read in one more query, and
+only when the step fails.
 
 ### 3.2 Readiness
 
@@ -323,9 +324,8 @@ step. The plugin is inert unless the port variable is set.
 | Plans, the runner, the report | the client | upstream has no reason to want a Python client |
 | An app's own state | the app's crates (DD6) | their own types |
 
-Every server method the plugin adds is a stopgap for an upstream gap, and
-[upstream.md](./upstream.md) lists them. Once each is replaced, there is no plugin, and this
-project is its client.
+Every server method the plugin once added has gone upstream ([upstream.md](./upstream.md)), so the
+plugin is only setup, a few lines an app could hold itself, and this project is its client.
 
 ## 9. Writing a test
 

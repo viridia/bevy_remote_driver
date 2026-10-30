@@ -1,8 +1,8 @@
 # What Bevy could take
 
-End-to-end tests drive a running app over the Bevy Remote Protocol (BRP). This driver needs a
-plugin today only because BRP lacks a few things. With them in Bevy, a test client in any language
-could drive any app with no plugin at all.
+End-to-end tests drive a running app over the Bevy Remote Protocol (BRP). This driver once needed
+server methods of its own because BRP lacked a few things. With those now in Bevy, a test client in
+any language can drive any app that sets BRP up.
 
 Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
 
@@ -18,7 +18,7 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
   client can connect a virtual pad and send its buttons and axes with `world.write_message`.
 - **Selecting entities by a path of names**
   ([bevy#26250](https://github.com/bevyengine/bevy/pull/26250)): `world.query` takes a
-  `name_path`. The driver's own `driver.select` (DD3.1) is due to be removed in its favour.
+  `name_path`. The client's selectors use it (DD3.1).
 - **Scrolling a node into view on request**
   ([bevy#26262](https://github.com/bevyengine/bevy/pull/26262)): `ScrollIntoView` is in
   `bevy_ui`, reflected, so a client can send it with `world.trigger_event`, and scrolls every

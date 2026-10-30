@@ -20,6 +20,8 @@ RAW_GAMEPAD = "bevy_input::gamepad::RawGamepadEvent"
 SCREENSHOT = "bevy_render::view::window::screenshot::Screenshot"
 SCREENSHOT_CAPTURED = "bevy_render::view::window::screenshot::ScreenshotCaptured"
 APP_EXIT = "bevy_app::app::AppExit"
+NAME = "bevy_ecs::name::Name"
+CHILD_OF = "bevy_ecs::hierarchy::ChildOf"
 
 # `GamepadAxis`'s variants. Every other control name is taken for a `GamepadButton`, and one that is
 # neither fails to deserialize, which names the offending word in the step's error.
@@ -58,10 +60,6 @@ def step(method):
 
 def path_of(selector):
     return selector.split("/") if isinstance(selector, str) else list(selector)
-
-
-def shown(matches):
-    return ["/".join(m["path"]) for m in matches] or "nothing"
 
 
 def field_path(at):
@@ -127,7 +125,8 @@ class Driver:
     string split on `/` (`"Settings/Audio/Volume"`) or as a list (`["Settings", "Audio",
     "Volume"]`, for a name that contains `/`). The last name must match an entity's `Name` exactly;
     each earlier one must match one of its ancestors, in order from the root down, at any depth, so
-    unnamed entities in between are skipped. A step that needs one entity waits until exactly one
+    unnamed entities in between are skipped. In the list form, a number is a child index:
+    `["Settings", 0]` is the first child of `Settings`. A step that needs one entity waits until exactly one
     matches, so a plan need not wait for a screen before acting on it; at the timeout it fails,
     and reports the full paths of what it found.
 
@@ -174,7 +173,7 @@ class Driver:
 
         def check():
             matches = self._select(selector)
-            return bool(matches), shown(matches)
+            return bool(matches), lambda: self._shown(matches)
 
         self._wait(check, f"{selector} to match", timeout)
 
@@ -184,7 +183,7 @@ class Driver:
 
         def check():
             matches = self._select(selector)
-            return not matches, shown(matches)
+            return not matches, lambda: self._shown(matches)
 
         self._wait(check, f"{selector} to match nothing", timeout)
 
@@ -204,10 +203,10 @@ class Driver:
         def check():
             matches = self._select(selector)
             if len(matches) != 1:
-                return False, shown(matches)
+                return False, lambda: self._shown(matches)
             result = self._call(
                 "world.get_components",
-                {"entity": matches[0]["entity"], "components": [component], "strict": False},
+                {"entity": matches[0], "components": [component], "strict": False},
             )
             if component not in result["components"]:
                 return False, result["errors"].get(component, "no such component")
@@ -399,7 +398,31 @@ class Driver:
         self._call("world.write_message", {"message": APP_EXIT, "value": "Success"})
 
     def _select(self, selector):
-        return self._call("driver.select", {"path": path_of(selector)})
+        """The entities `selector` matches, with BRP's `name_path` filter."""
+        path = path_of(selector)
+        if not path:
+            raise StepFailed("a selector with at least one name", repr(selector))
+        rows = self._call("world.query", {"data": {}, "filter": {"name_path": path}})
+        return [row["entity"] for row in rows]
+
+    def _shown(self, entities):
+        """Each of `entities` by its full path of names, for a report, or "nothing". Asked only
+        when a step fails, since it reads every entity."""
+        if not entities:
+            return "nothing"
+        rows = self._call("world.query", {"data": {"option": [NAME, CHILD_OF]}})
+        names = {row["entity"]: row["components"].get(NAME) for row in rows}
+        parents = {row["entity"]: row["components"].get(CHILD_OF) for row in rows}
+
+        def path(entity):
+            above = []
+            while entity is not None:
+                if names.get(entity) is not None:
+                    above.append(names[entity])
+                entity = parents.get(entity)
+            return "/".join(reversed(above))
+
+        return [path(entity) for entity in entities]
 
     def _one(self, selector):
         """The entity `selector` matches, waiting until it matches exactly one."""
@@ -407,10 +430,10 @@ class Driver:
 
         def check():
             found[:] = self._select(selector)
-            return len(found) == 1, shown(found)
+            return len(found) == 1, lambda: self._shown(found)
 
         self._wait(check, f"{selector} to match one entity", None)
-        return found[0]["entity"]
+        return found[0]
 
     @staticmethod
     def _part(value, at):
@@ -431,7 +454,8 @@ class Driver:
             if (
                 "frames" in limit and self.frame() - start_frame >= limit["frames"]
             ) or ("seconds" in limit and time.monotonic() - start >= limit["seconds"]):
-                raise StepFailed(expected, found)
+                # A report that costs a query is given as a function, called only here.
+                raise StepFailed(expected, found() if callable(found) else found)
             time.sleep(POLL)
 
     def _until(self, frame):
