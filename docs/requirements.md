@@ -59,7 +59,7 @@ one in front, so wall-clock time is not a measure of how far the app has run.
 - **DR3.5 (MUST)** Consecutive input steps reach the app on distinct frames, unless the plan asks
   for them in one frame.
 - **DR3.6 (MUST)** A test can wait for a stated time, as a margin for work the app does not signal
-  the end of, such as assets loaded after a scene is ready.
+  the end of, such as assets still loading after a scene appears.
 
 ## 4. Input
 

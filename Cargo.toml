@@ -29,7 +29,6 @@ bevy_input = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_math = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_reflect = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_remote = { git = "https://github.com/bevyengine/bevy.git", branch = "main", default-features = false, features = ["http"] }
-bevy_scene = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_ui = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 bevy_window = { git = "https://github.com/bevyengine/bevy.git", branch = "main" }
 serde = { version = "1", features = ["derive"] }

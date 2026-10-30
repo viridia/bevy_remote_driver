@@ -1,8 +1,7 @@
 //! Drive a running Bevy app from outside, for automated tests.
 //!
-//! Add [`RemoteDriverPlugin`] to your app, and a test client can find entities by name, wait for
-//! scenes to finish spawning, count frames and click on UI nodes, all over the [Bevy Remote
-//! Protocol](bevy_remote). Everything the protocol already does, such as querying components,
+//! Add [`RemoteDriverPlugin`] to your app, and a test client can find entities by name, count
+//! frames and click on UI nodes, all over the [Bevy Remote Protocol](bevy_remote). Everything the protocol already does, such as querying components,
 //! writing input messages and taking screenshots, the client does through the protocol's own
 //! methods.
 //!
@@ -42,15 +41,12 @@
 mod diagnostics;
 mod input;
 mod locate;
-mod ready;
 mod select;
 
 use bevy_app::{App, Plugin};
 use bevy_diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy_ecs::schedule::IntoScheduleConfigs;
 use bevy_remote::{RemoteLast, RemotePlugin, RemoteSystems, http::RemoteHttpPlugin};
-
-pub use ready::SceneReady;
 
 const PORT_VARIABLE: &str = "BEVY_REMOTE_DRIVER_PORT";
 
@@ -100,9 +96,7 @@ fn install(app: &mut App, port: u16) {
     .add_systems(
         RemoteLast,
         input::write_due.after(RemoteSystems::ProcessRequests),
-    )
-    .register_type::<SceneReady>()
-    .add_observer(ready::mark_ready);
+    );
 }
 
 #[cfg(test)]

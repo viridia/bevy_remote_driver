@@ -31,8 +31,9 @@ Reference:
 2. **Write a Python plan** in the project's `plans/`. Set `BIN` or `EXAMPLE` for the target to
    launch, and `PACKAGE` if it is not the root package's. Set `FEATURES` if the target declares
    `required-features`; without them, cargo skips the target and the run fails with "the build
-   produced no example named …". Define `run(driver)`, calling the steps as methods. Start with
-   `present` on the screen's root, with `ready=True`. Give a step whose point is not obvious a
+   produced no example named …". Define `run(driver)`, calling the steps as methods. A step that
+   names an entity waits for it, so act on what the step needs, not its screen's root. Before a
+   screenshot, `present` on what it should show. Give a step whose point is not obvious a
    comment, and a sequence you repeat a named function.
 3. **Write JSON only for a flat list of steps that reads as one.** It names `bin` or `example`
    and lists `steps`. `plans/testbed/smoke.json` is an example, and `panel.py` and `typing.py`
@@ -44,7 +45,7 @@ Reference:
    too. A plan that fails halfway leaves its changes behind, so the start is the one that counts.
 5. **Wait for a condition, then frames, then seconds.** A covered window runs at about half speed,
    so a margin in seconds for the app's own logic passes in front and fails behind another window.
-   Use `seconds` only for assets loaded after a scene is ready, such as icons.
+   Use `seconds` only for assets still loading after a scene appears, such as images and icons.
 6. **Assert with checks, not screenshots.** `expect`, `absent` and `present` are what make a test
    fail. A screenshot shows that something is drawn, for the person reading the run.
 7. **Match a range where an exact value would only restate the app's arithmetic.** In an `expect`

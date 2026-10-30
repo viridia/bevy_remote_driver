@@ -9,7 +9,7 @@ RED = {"Srgba": {"red": 0.8, "green": 0.1, "blue": 0.1, "alpha": 1.0}}
 
 
 def run(driver):
-    driver.present("Menu", ready=True)  # wait for the scene to finish spawning
+    driver.present("Menu")  # wait for the scene to finish spawning
 
     # A snapshot, a change, and the snapshot put back whole.
     saved = driver.get_resource(CLEAR)

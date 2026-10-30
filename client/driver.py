@@ -22,7 +22,6 @@ GAMEPAD_CONNECTION = "bevy_input::gamepad::GamepadConnectionEvent"
 RAW_GAMEPAD = "bevy_input::gamepad::RawGamepadEvent"
 SCREENSHOT = "bevy_render::view::window::screenshot::Screenshot"
 SCREENSHOT_CAPTURED = "bevy_render::view::window::screenshot::ScreenshotCaptured"
-SCENE_READY = "bevy_remote_driver::ready::SceneReady"
 APP_EXIT = "bevy_app::app::AppExit"
 
 # `GamepadAxis`'s variants. Every other control name is taken for a `GamepadButton`, and one that is
@@ -131,12 +130,14 @@ class Driver:
     string split on `/` (`"Settings/Audio/Volume"`) or as a list (`["Settings", "Audio",
     "Volume"]`, for a name that contains `/`). The last name must match an entity's `Name` exactly;
     each earlier one must match one of its ancestors, in order from the root down, at any depth, so
-    unnamed entities in between are skipped. A step that needs one entity fails on none or several,
+    unnamed entities in between are skipped. A step that needs one entity waits until exactly one
+    matches, so a plan need not wait for a screen before acting on it; at the timeout it fails,
     and reports the full paths of what it found.
 
-    Timeouts. `present`, `absent` and `expect` wait for their condition rather than look once. A
-    `timeout` is a dict with `frames`, `seconds` or both, and ends at whichever comes first; a limit
-    left out does not apply. The default is 300 frames and 10 seconds. `{"frames": 0}` looks once.
+    Timeouts. Every step waits for what it needs rather than looking once: `present`, `absent` and
+    `expect` for their condition, the others for their entity. A `timeout` is a dict with
+    `frames`, `seconds` or both, and ends at whichever comes first; a limit left out does not
+    apply. The default is 300 frames and 10 seconds. `{"frames": 0}` looks once.
 
     Components and messages are named by full type path, as BRP names them, such as
     `bevy_ui::widget::text::Text`. `expect` compares only the keys its value gives, at any depth.
@@ -146,7 +147,7 @@ class Driver:
 
     JSON plans. A step is an object with one key naming the method, whose value is the first
     argument; the other keys are the remaining arguments by name:
-    `{"present": "Menu", "ready": true}` is `driver.present("Menu", ready=True)`.
+    `{"click": "Menu/Play", "hold": 3}` is `driver.click("Menu/Play", hold=3)`.
     """
 
     def __init__(self, port, out_dir):
@@ -170,17 +171,15 @@ class Driver:
     # The steps.
 
     @step
-    def present(self, selector, ready=False, timeout=None):
-        """Waits until `selector` matches, and with `ready`, until a match's scene has spawned."""
+    def present(self, selector, timeout=None):
+        """Waits until `selector` matches. A scene's entities appear together, in the frame it
+        spawns, so a match whose name the scene gives has its descendants too."""
 
         def check():
             matches = self._select(selector)
-            if not ready:
-                return bool(matches), shown(matches)
-            done = [m for m in matches if self._has(m["entity"], SCENE_READY)]
-            return bool(done), f"{shown(matches)}, {len(done)} of them ready"
+            return bool(matches), shown(matches)
 
-        self._wait(check, f"{selector} to match" + (" and be ready" if ready else ""), timeout)
+        self._wait(check, f"{selector} to match", timeout)
 
     @step
     def absent(self, selector, timeout=None):
@@ -431,11 +430,15 @@ class Driver:
         return self._call("driver.select", {"path": path_of(selector)})
 
     def _one(self, selector):
-        """The entity `selector` matches, failing on none or several."""
-        matches = self._select(selector)
-        if len(matches) != 1:
-            raise StepFailed(f"{selector} to match one entity", shown(matches))
-        return matches[0]["entity"]
+        """The entity `selector` matches, waiting until it matches exactly one."""
+        found = []
+
+        def check():
+            found[:] = self._select(selector)
+            return len(found) == 1, shown(found)
+
+        self._wait(check, f"{selector} to match one entity", None)
+        return found[0]["entity"]
 
     @staticmethod
     def _part(value, at):
@@ -445,12 +448,6 @@ class Driver:
         if stopped is not None:
             raise StepFailed(f"{at} in the value", f"no {stopped} in {json.dumps(value)}")
         return part
-
-    def _has(self, entity, component):
-        result = self._call(
-            "world.get_components", {"entity": entity, "components": [component], "strict": False}
-        )
-        return component in result["components"]
 
     def _wait(self, check, expected, timeout):
         limit = DEFAULT_TIMEOUT if timeout is None else timeout

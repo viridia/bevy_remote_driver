@@ -30,6 +30,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | `input.key` and `input.type` merged as bevy#26342 (`784b85d36`); `upstream.md` and DD8 list them as landed. Docs only. |
 | (pending) | Bevy main bumped to `784b85d` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. It brings `input.click`, `input.key`, `input.type` and `ScrollIntoView`, so Next items 1 and 4 (was X6) can start. It is the commit before a feathers regression (bevy#26369; `arbor_day`'s X67). Verified: clippy clean, 20 unit tests; `arbor_day`'s five plans; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9) at `54f38f3`, which differs only in that feathers change. |
 | (pending) | What a BRP client can see of a queued scene, tested in `tests/scene_readiness.rs`: an asset reader holds the scene's inherited `.bsn` unloaded, and the world is checked after every update, which is what a request in `RemoteLast` sees. A queued scene is seen as nothing, then whole; an entity named outside its scene and `queue_apply_scene`d is seen partial, its name alone, until the scene loads; stepping `SpawnScene`, a look after each of its systems sees nothing, then whole. A `Handle` field alone does not make a scene wait, so `Ready` does not cover the assets a scene names, despite `SceneReady`'s doc. The related-list case is ignored (X10); stepping a scene that waits is not tested (X11). The umbrella dev-dependency gains `bevy_debug_stepping`. Verified: clippy clean on all targets, three tests pass and one is ignored, in parallel and on one thread. |
+| (pending) | Readiness deleted (was Next 5): `SceneReady`, its observer and `ready.rs` go, with the `bevy_scene` dependency, and `present` loses `ready`. Every step that names an entity now waits for exactly one match (the client's `_one`), so a plan acts on what a step needs without waiting for its screen first. DD3.2 says why no readiness is needed; DD3.1, DD8, `upstream.md` (bevy#26120 under Not needed), DR3.6 and `writing-plans.md` follow. X1 loses bevy#26120 from its gate. New X12 (clicks waiting until a node can take them) and X13 (screenshots waiting for loading). `ready=True` removed from the testbed's four plans and `arbor_day`'s seven. Verified: clippy clean on all targets, 19 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans, against its git copy of the plugin. Its three `plans/gallery/` plans were edited but not run. |
 
 ## Next
 
@@ -55,13 +56,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    ancestors' positions to tell whether anything moved. Since bevy#26262 the event acts on every
    `overflow: scroll` ancestor, not only the nearest `ScrollArea`. Verified by `panel.py`, whose
    clicks scroll.
-5. **Delete readiness.** `tests/scene_readiness.rs` shows a BRP client sees a queued scene
-   whole or not at all, so waiting for the entity a step needs is enough. The exceptions, an
-   entity named outside its scene or given related scenes, show their own entity first; there a
-   plan waits for the descendant it needs, not the root. `ready=True`, `SceneReady` and its
-   observer go (DD3.2, `writing-plans.md`, `ready.rs`); bevy#26120 becomes a note on why a BRP
-   client does not need it, and X1 loses its last upstream gate. The test stays as the evidence.
-   Verified by the testbed plans and `arbor_day`'s, with `ready=True` removed from them.
 
 ## Decisions
 
@@ -84,11 +78,9 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 ## Deferred
 
 - **X1** A Python-only project (D1): the Rust crate goes, and an app enables BRP itself. Past
-  Next items 1–4, the plugin holds only `SceneReady` (bevy#26120) and its setup:
-  `RemotePlugin` and `RemoteHttpPlugin` on the port `run.py` sets in the environment, and
-  `FrameTimeDiagnosticsPlugin`. The setup becomes a few lines in an app's `main`, which
-  `writing-plans.md` gives. *Gate:* Next items 1–4 done, and bevy#26120 landed; if it is
-  declined, its observer joins those lines.
+  Next items 1–4, the plugin holds only its setup: `RemotePlugin` and `RemoteHttpPlugin` on the
+  port `run.py` sets in the environment, and `FrameTimeDiagnosticsPlugin`. The setup becomes a
+  few lines in an app's `main`, which `writing-plans.md` gives. *Gate:* Next items 1–4 done.
 - **X2** Calling an app's own server methods from a plan. Apps can register methods (DD6), but the
   client has no step for them. First a generic `call` step, which polls while it carries an
   expected `value` (a read) and invokes once without one (a write), matching with `expect`'s
@@ -115,7 +107,11 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 - **X8** Drags, and plans that record a demo or tutorial (the author, 2026-10-26). A drag is
   `input.click`'s press, a `CursorMoved` each frame along a path, and the release, on the same
   queue in `bevy_remote`, which picking turns into drag start, drag and end; proposed upstream
-  beside `input.click` rather than in the plugin, so X1 holds. Sketch: `input.click` gains
+  beside `input.click` rather than in the plugin, so X1 holds. bevy#26366 (open, not ours) adds
+  `input.hover`, `input.scroll` and `input.drag { from, to, button }`, four events a frame apart:
+  move to `from`, press, move to `to`, release. That covers a test's drag and the turntable's
+  zoom, but not a path, a held press (Escape mid-drag) or a recording's pacing, which the sketch
+  adds on top. Sketch: `input.click` gains
   `state`, as `input.key` has, to send the press or the release alone; `input.move { entity }` or
   `{ window, position }`, with `frames` (default 1) and `easing`, moves the cursor from where the
   queue left it, one `CursorMoved` a frame, and returns `{ frame }`. A drag is a press, a move and
@@ -133,7 +129,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   (Bevy's `Screenshot`, then ffmpeg), for an even frame rate with no focus needed; holds between
   steps, and perhaps captions, for pacing. First users: `arbor_day`'s curve editor, whose point
   drag, rectangle selection and Escape mid-drag are checked by hand, its turntable gestures, and a
-  video of handle dragging (its X62). *Gate:* the first plan or video wanting a drag.
+  video of handle dragging (its X62). *Gate:* the first plan or video wanting a drag; for a
+  test's straight drag, a bump past bevy#26366.
 - **X9** Clicking a sprite or a mesh (the author, 2026-10-28). `input.click`'s `entity` is a UI
   node; a world entity needs a camera to project it into the window, and a point other than its
   centre when the centre misses it (a ring, a sprite's transparent middle) or something nearer the
@@ -159,6 +156,15 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   the entity waits forever; the inspector's stepping would hit it too. The stepped test uses a
   scene without a dependency. *Gate:* fixed in the Bevy we build against; then step the held
   scene.
+- **X12** A click that waits until its node can take it, as Playwright's actionability checks
+  do: laid out with a size, visible, enabled (no `InteractionDisabled`), and the topmost hit
+  under its centre. Steps already wait for their entity, and `input.click` waits a frame for
+  layout and scrolls into view. *Gate:* a plan that fails on a node present but not yet
+  clickable.
+- **X13** A screenshot that waits for loading to settle, so it does not catch a scene before
+  its images: BSN's `Ready` does not wait for a `Handle` a scene holds (DD3.2), and plans wait
+  with `seconds` instead. Needs the asset server's load states over BRP, which it does not have.
+  *Gate:* a screenshot caught with a texture missing.
 
 ## Notes
 

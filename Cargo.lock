@@ -1519,7 +1519,6 @@ dependencies = [
  "bevy_math",
  "bevy_reflect",
  "bevy_remote",
- "bevy_scene",
  "bevy_time",
  "bevy_ui",
  "bevy_window",

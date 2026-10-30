@@ -5,7 +5,7 @@ TEXT = "bevy_ui::widget::text::Text"
 
 
 def run(driver):
-    driver.present("Menu", ready=True)  # wait for the scene to finish spawning
+    driver.present("Menu")  # wait for the scene to finish spawning
     driver.screenshot("menu")
     driver.click("Menu/Start")  # a UI node, by its path of Names
     driver.present("Panel")  # waits until it appears

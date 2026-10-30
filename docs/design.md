@@ -19,7 +19,7 @@ app under test                          client (Python, standard library only)
   RemotePlugin, RemoteHttpPlugin          launches the app, waits for the port
   RemoteDriverPlugin                      runs a plan step by step
     driver.select, driver.locate,   <-->  writes input with BRP's own methods
-    driver.diagnostics; SceneReady        saves screenshots, writes the report, closes the app
+    driver.diagnostics                    saves screenshots, writes the report, closes the app
 ```
 
 The plugin is small on purpose. It adds a server method only where BRP cannot answer from what is
@@ -73,23 +73,25 @@ before sending it; a name containing `/` is written in the array form. Reports p
 with `/`.
 
 The method walks every entity with a `Name` and checks its `ChildOf` chain, which is linear in named
-entities and fine at a test's scale. A step that needs one entity treats zero or several matches as
-a failure and reports the matches with their full name paths (DR2.2).
+entities and fine at a test's scale. A step that needs one entity waits until exactly one matches,
+and at its timeout reports the matches with their full name paths (DR2.2).
 
 ### 3.2 Readiness
 
-BSN triggers `Ready` on each entity of a scene once it and its dependencies have finished spawning.
-It is an `EntityEvent` without `Reflect`, and it is an event: a client that spawns a scene and then
-starts observing can miss it.
+A client needs no readiness of its own (DR3.2): waiting for the entity a step needs is enough.
+BSN applies a queued scene, an entity and all its descendants, in one call from an exclusive system
+in `SpawnScene`, and BRP answers in `RemoteLast`, so a request sees a scene whole or not at all.
+Until then the scene's entity is empty, and a path of the names it gives matches nothing.
+`tests/scene_readiness.rs` shows this after every frame, and after every system of `SpawnScene`.
 
-The plugin adds a global observer that inserts `SceneReady`, a reflected marker component, on each
-`Ready` target. Readiness then becomes state, which a query sees, and which is still there for a
-wait that starts late (DR3.2). A `present` step with `ready=True` selects, then asks BRP's own
-`world.get_components` whether each match has `SceneReady`.
+Two cases show part of a scene first: an entity named outside its scene, then given one with
+`queue_apply_scene`, and an entity given related scenes. Each shows its own entity before the rest,
+so a plan waits for the entity its step needs, a descendant, not the root. Every step that names an
+entity waits for it (3.1), so this is what a plan does without trying.
 
-`Ready` covers the assets the scene itself names. An asset something in the scene requests after it
-spawns, such as an icon a system loads, is not among them, and no event marks when it has loaded. A
-plan waits for those with `seconds` (DR3.6). Loading runs on IO threads rather than per frame, so
+No event marks when assets a scene names have loaded: BSN's `Ready` waits only for scenes the
+scene inherits, not for a `Handle` it holds, and an asset a system requests later is not covered
+either. A plan waits for those with `seconds` (DR3.6). Loading runs on IO threads rather than per frame, so
 time is the right measure there, where the app's own logic is measured in frames.
 
 ### 3.3 Where a node is drawn
@@ -145,7 +147,6 @@ the client reads with only the standard library and no build step (DR7.1, DR7.3)
 {
   "example": "testbed",
   "steps": [
-    { "present": "Menu", "ready": true },
     { "click": "Menu/Start" },
     { "present": "Panel" },
     { "key": "Escape" },
@@ -334,7 +335,7 @@ step. The plugin is inert unless the port variable is set.
 | Piece | Home | Why |
 | --- | --- | --- |
 | Selection by name path | upstream, done: a filter on `world.query` (bevy#26250) | any app's test wants it, and it needs only `Name` and `ChildOf` |
-| Readiness as state | upstream, `bevy_scene` (bevy#26120) | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
+| Waiting for a scene | the client, by name | a request sees a scene whole or not at all (3.2), so no readiness state is needed (bevy#26120 withdrawn) |
 | Locating a UI node | the client, with upstream's `ScrollIntoView` (bevy#26262) | its position and window are reflected components; only the scrolling needs the plugin |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
 | Clicks, keys and text | upstream, done: `input.click` (bevy#26333), `input.key` and `input.type` (bevy#26342) | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
@@ -344,8 +345,8 @@ step. The plugin is inert unless the port variable is set.
 | An app's own state | the app's crates (DD6) | their own types |
 
 Every server method the plugin adds is a stopgap for an upstream gap, and
-[upstream.md](./upstream.md) asks for the rest. If those land, the plugin is `SceneReady`'s observer
-at most, and this project is its client.
+[upstream.md](./upstream.md) lists them. Once each is replaced, there is no plugin, and this
+project is its client.
 
 ## 9. Writing a test
 

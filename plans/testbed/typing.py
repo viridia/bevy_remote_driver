@@ -8,7 +8,7 @@ TYPED = "bevy_ui::widget::text::Text"
 
 
 def run(driver):
-    driver.present("Menu", ready=True)
+    driver.present("Menu")
     for end in range(1, len(TEXT) + 1):
         driver.type(TEXT[end - 1])
         driver.expect("Menu/Typed", TYPED, TEXT[:end], timeout={"frames": 5})

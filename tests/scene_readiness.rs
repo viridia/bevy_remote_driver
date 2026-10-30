@@ -1,4 +1,4 @@
-//! Whether a BRP client can see a scene half applied (ledger, Next item 5).
+//! Whether a BRP client can see a scene half applied (DD3.2).
 //!
 //! BRP answers requests in `RemoteLast`, the last schedule of a frame, so the world after
 //! `App::update` returns is what a request sees. Each test queues a scene whose one dependency a

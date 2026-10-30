@@ -2,7 +2,7 @@
   "package": "bevy_remote_driver",
   "example": "testbed",
   "steps": [
-    { "present": "Menu", "ready": true },
+    { "present": "Menu" },
     { "absent": "Panel", "timeout": { "frames": 0 } },
     { "screenshot": "menu" },
     { "click": "Menu/Start" },

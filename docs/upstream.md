@@ -34,8 +34,9 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
   `input.click`'s queue. They replace the client's `KeyboardInput` messages and its US key table
   (DD5.2).
 
-## Proposed
+## Not needed
 
-- **Readiness as state** ([bevy#26120](https://github.com/bevyengine/bevy/issues/26120)):
-  `bevy_scene` leaves a reflected `SceneReady` marker on each entity it triggers `Ready` for. The
-  driver's global observer does this today (DD3.2).
+- **Readiness as state** ([bevy#26120](https://github.com/bevyengine/bevy/issues/26120)): a
+  reflected marker on each entity `bevy_scene` triggers `Ready` for, so a client could wait for a
+  scene to finish spawning. A BRP request sees a scene whole or not at all (DD3.2), so a client
+  waits for the entity it needs by name instead.
