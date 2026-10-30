@@ -27,12 +27,15 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | Bevy main bumped to `2614884` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. `name_path` landed upstream as bevy#26250, so `upstream.md` and DD8 list it as landed and Next gains an item deleting `driver.select`. Scrolling into view is filed as bevy#26262, so `upstream.md` lists it as proposed and X6 is gated on it. Verified: clippy clean; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans. |
 | (pending) | A click as a server method (DD5.1), the first half of the input proposal drafted for Bevy on 2026-10-20: `driver.click { entity, button, hold }` or `{ window, position }` queues `CursorMoved`, the press and the release as `WindowEvent`s built from Bevy's types, written one frame apart from `RemoteLast`, and returns `{ frame }`, the frame that reads the release. Scrolling into view takes every hiding ancestor in one pass (DD3.3), shared with `driver.locate`; the click's cursor event waits a frame for layout, so the client's retry and `SCROLL_TRIES` go. `bevy_input` joins the dependencies. Verified: clippy clean, 20 unit tests (seven new); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s four plans against this checkout. |
 | (pending) | Upstream status: `ScrollIntoView` (bevy#26262, `fa57bd8a5`) and `input.click` (bevy#26333, `b85a36290`) merged on Bevy main; `input.key` and `input.type` filed as bevy#26342, skipping the plugin. `upstream.md` and DD8 say so; Next item 1 becomes deleting `driver.click` and moving keys and text to BRP; X6's gate is the bump; X1 becomes the move to a Python-only project, gated on Next 1–3, X6 and bevy#26120; X8's drag is proposed upstream beside `input.click`; new X9, clicking a sprite or mesh. Docs only. |
+| (pending) | `input.key` and `input.type` merged as bevy#26342 (`784b85d36`); `upstream.md` and DD8 list them as landed. Docs only. |
+| (pending) | Bevy main bumped to `784b85d` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. It brings `input.click`, `input.key`, `input.type` and `ScrollIntoView`, so Next items 1 and 4 (was X6) can start. It is the commit before a feathers regression (bevy#26369; `arbor_day`'s X67). Verified: clippy clean, 20 unit tests; `arbor_day`'s five plans; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9) at `54f38f3`, which differs only in that feathers change. |
+| (pending) | Next item 5: whether a client needs readiness, with a deterministic test of what BRP can see of a queued scene. Docs only. |
 
 ## Next
 
 1. **Delete `driver.click`; keys and text from BRP.** Past bevy#26333, BRP's `input.click`
    does what `driver.click` does (DD5.1), scrolling into view included, so the client's `click`
-   calls it and the method goes; `driver.locate` stays until X6. Past bevy#26342, the client's
+   calls it and the method goes; `driver.locate` stays until item 4. Past bevy#26342, the client's
    `key`, `press`, `release`, `exits` and `type` steps call `input.key` and `input.type`, and its
    `KeyboardInput` messages and `CHARACTERS` table go (DD5.2). Update DD5 and DD8, and
    `writing-plans.md` if a step's arguments change. Verified by the testbed plans, `typing.py`
@@ -47,6 +50,29 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    path from `Name` and `ChildOf` queried with it, or reports entity ids. Update DD3.1, DD8's
    row, `writing-plans.md` where it describes selectors, and X7. Verified by the testbed plans,
    since every click selects.
+4. **Scroll into view with Bevy's `ScrollIntoView`** (was X6, its gate passed): `driver.locate`
+   triggers the event in place of its own `ScrollPosition` arithmetic (DD3.3), and compares
+   ancestors' positions to tell whether anything moved. Since bevy#26262 the event acts on every
+   `overflow: scroll` ancestor, not only the nearest `ScrollArea`. Verified by `panel.py`, whose
+   clicks scroll.
+5. **Whether a client needs readiness.** By reading `bevy_scene` (2026-10-29), BRP cannot see a
+   scene half applied: `ResolvedScene::apply` writes an entity and its children in one call,
+   from an exclusive system in `SpawnScene`, and BRP answers in `RemoteLast`. What it can see is
+   a queued scene not yet applied, an empty entity, which a path of names does not match since
+   the name is the scene's. The exceptions are an entity named outside its scene, then
+   `queue_apply_scene`d, and `queue_spawn_related_scenes`, whose parent is whole before its
+   children; there, waiting on the root and assuming its descendants is the race, while
+   waiting on the entity a step needs is not. Test it deterministically rather than by
+   repeated runs, which pass by accident: a headless test queues a named scene whose
+   dependency it holds unloaded across several updates, then loads it, and after every update
+   checks that a `name_path` query finds either nothing or the whole subtree; the same for the
+   two exceptions, which must show the partial state, so the test is seen to catch one. Then
+   again with stepping (BRP's `stepping.*`, bevy#26200; the test alone enables
+   `bevy_debug_stepping`): `SpawnScene`, `Update` and `PostUpdate` added to `Stepping`, the
+   query after every `stepping.step_frame`, so the same holds at every system boundary, the
+   finest an outside client can see. If it holds, `ready=True` and `SceneReady` go (DD3.2,
+   `writing-plans.md`), bevy#26120 becomes a note on why a BRP client does not need it, and X1
+   loses its last upstream gate.
 
 ## Decisions
 
@@ -69,10 +95,10 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 ## Deferred
 
 - **X1** A Python-only project (D1): the Rust crate goes, and an app enables BRP itself. Past
-  Next items 1–3 and X6, the plugin holds only `SceneReady` (bevy#26120) and its setup:
+  Next items 1–4, the plugin holds only `SceneReady` (bevy#26120) and its setup:
   `RemotePlugin` and `RemoteHttpPlugin` on the port `run.py` sets in the environment, and
   `FrameTimeDiagnosticsPlugin`. The setup becomes a few lines in an app's `main`, which
-  `writing-plans.md` gives. *Gate:* Next items 1–3 and X6 done, and bevy#26120 landed; if it is
+  `writing-plans.md` gives. *Gate:* Next items 1–4 done, and bevy#26120 landed; if it is
   declined, its observer joins those lines.
 - **X2** Calling an app's own server methods from a plan. Apps can register methods (DD6), but the
   client has no step for them. First a generic `call` step, which polls while it carries an
@@ -93,12 +119,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   as `expect` does for a component. They read the file the app wrote, so a plan calls them after
   the app has saved (on exit, or once its deferred save has run). Python's `tomllib` (3.11 and
   later) parses TOML, so D5 holds. *Gate:* a plan whose subject is what an app saves.
-
-- **X6** Scroll into view with Bevy's `ScrollIntoView` in place of the driver's own `ScrollPosition`
-  arithmetic (DD3.3), triggering the event and comparing ancestors' positions to tell whether
-  anything moved. Today the event acts only on the nearest `ScrollArea`, which many games'
-  scrolled nodes are not. bevy#26262 (merged as `fa57bd8a5`) makes it act on every
-  `overflow: scroll` ancestor, reflected, in `bevy_ui`. *Gate:* a bump past `fa57bd8a5`.
 - **X7** Richer entity selectors than a path of `Name`s (DD3.1): an index for the Nth match or
   child, given as a number in the list form, or a CSS-like syntax, the model Bevy UI authors know
   best. Value paths are `expect`'s `at`, which needed none of this. *Gate:* a plan that must reach

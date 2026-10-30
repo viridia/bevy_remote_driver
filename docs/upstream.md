@@ -29,13 +29,13 @@ Discussion: [bevy#25894](https://github.com/bevyengine/bevy/issues/25894).
   `input.click` takes a UI node or a window point, scrolls a hidden node into view, and returns
   the frame that reads the release. The driver's own `driver.click` (DD5.1) is due to be removed
   in its favour.
+- **Keys and text as server methods**
+  ([bevy#26342](https://github.com/bevyengine/bevy/pull/26342)): `input.key` and `input.type`, on
+  `input.click`'s queue. They replace the client's `KeyboardInput` messages and its US key table
+  (DD5.2).
 
 ## Proposed
 
 - **Readiness as state** ([bevy#26120](https://github.com/bevyengine/bevy/issues/26120)):
   `bevy_scene` leaves a reflected `SceneReady` marker on each entity it triggers `Ready` for. The
   driver's global observer does this today (DD3.2).
-- **Keys and text as server methods**
-  ([bevy#26342](https://github.com/bevyengine/bevy/pull/26342)): `input.key` and `input.type`, on
-  `input.click`'s queue. They replace the client's `KeyboardInput` messages and its US key table
-  (DD5.2).

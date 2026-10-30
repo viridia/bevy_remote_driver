@@ -337,7 +337,7 @@ step. The plugin is inert unless the port variable is set.
 | Readiness as state | upstream, `bevy_scene` (bevy#26120) | a `Reflect` derive on `Ready` would not fix the race; the scene spawner leaving a component would |
 | Locating a UI node | the client, with upstream's `ScrollIntoView` (bevy#26262) | its position and window are reflected components; only the scrolling needs the plugin |
 | Diagnostics over BRP | upstream, done: `diagnostics.get` (bevy#25824) | BRP took a method rather than reflecting the store |
-| Clicks, keys and text | upstream, as `input.click` (done, bevy#26333), `input.key` and `input.type` (bevy#26342) | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
+| Clicks, keys and text | upstream, done: `input.click` (bevy#26333), `input.key` and `input.type` (bevy#26342) | every client otherwise re-derives the messages, and breaks at runtime when their shape changes |
 | Gamepads | the client | the messages are reflected and writable (bevy#25904) |
 | Bringing the window forward before a screenshot | the client | a policy for tests, not a property of screenshots |
 | Plans, the runner, the report | the client | upstream has no reason to want a Python client |
