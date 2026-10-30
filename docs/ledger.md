@@ -31,6 +31,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | (pending) | Bevy main bumped to `784b85d` (D2), with `bevy_action_map`, `bevy_immediate` and `arbor_day`; no code changes. It brings `input.click`, `input.key`, `input.type` and `ScrollIntoView`, so Next items 1 and 4 (was X6) can start. It is the commit before a feathers regression (bevy#26369; `arbor_day`'s X67). Verified: clippy clean, 20 unit tests; `arbor_day`'s five plans; testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9) at `54f38f3`, which differs only in that feathers change. |
 | (pending) | What a BRP client can see of a queued scene, tested in `tests/scene_readiness.rs`: an asset reader holds the scene's inherited `.bsn` unloaded, and the world is checked after every update, which is what a request in `RemoteLast` sees. A queued scene is seen as nothing, then whole; an entity named outside its scene and `queue_apply_scene`d is seen partial, its name alone, until the scene loads; stepping `SpawnScene`, a look after each of its systems sees nothing, then whole. A `Handle` field alone does not make a scene wait, so `Ready` does not cover the assets a scene names, despite `SceneReady`'s doc. The related-list case is ignored (X10); stepping a scene that waits is not tested (X11). The umbrella dev-dependency gains `bevy_debug_stepping`. Verified: clippy clean on all targets, three tests pass and one is ignored, in parallel and on one thread. |
 | (pending) | Readiness deleted (was Next 5): `SceneReady`, its observer and `ready.rs` go, with the `bevy_scene` dependency, and `present` loses `ready`. Every step that names an entity now waits for exactly one match (the client's `_one`), so a plan acts on what a step needs without waiting for its screen first. DD3.2 says why no readiness is needed; DD3.1, DD8, `upstream.md` (bevy#26120 under Not needed), DR3.6 and `writing-plans.md` follow. X1 loses bevy#26120 from its gate. New X12 (clicks waiting until a node can take them) and X13 (screenshots waiting for loading). `ready=True` removed from the testbed's four plans and `arbor_day`'s seven. Verified: clippy clean on all targets, 19 unit tests, `scene_readiness` (3, one ignored); testbed `panel.py` (8), `smoke.json` (17), `state.py` (14), `typing.py` (9); `arbor_day`'s five plans, against its git copy of the plugin. Its three `plans/gallery/` plans were edited but not run. |
+| (pending) | The road to a published Python package as Next items 5–8, across repos: X1 becomes item 5; then packaging, moving `bevy_action_map`, `arbor_day` and the testbed onto the package (retiring D4), and publishing on PyPI at Bevy 0.20's release. X8 and X9 point at item 5. Docs only. |
 
 ## Next
 
@@ -57,6 +58,32 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    `overflow: scroll` ancestor, not only the nearest `ScrollArea`. Verified by `panel.py`, whose
    clicks scroll.
 
+Items 5–8 are the road to a published Python package, and cross repos.
+
+5. **A Python-only project** (was X1; D1): the Rust crate goes, and an app enables BRP itself.
+   After items 1–4 the plugin holds only its setup: `RemotePlugin` and `RemoteHttpPlugin` on the
+   port `run.py` sets in the environment, inert without it (DR1.5), and
+   `FrameTimeDiagnosticsPlugin`. The setup becomes a few lines in an app's `main`, which
+   `writing-plans.md` gives and the testbed uses. Verified by the testbed plans.
+6. **A Python package.** `src/bevy_remote_driver/` with `pyproject.toml`, no dependencies (D5),
+   `requires-python >= 3.11`, built with `uv`; a `bevy-remote-driver` command in place of
+   `python3 <path>/client/run.py`; plans import `from bevy_remote_driver import Between`. The
+   README: what it is with a short plan, installing, setting up the app (the `bevy_remote`
+   feature, the setup lines, the port variable, `#Name`), running plans, `writing-plans.md`, a
+   compatibility table, the licence; badges for PyPI, Python versions, licence, CI and Bevy
+   tracking. CI for Python only: ruff, and unit tests of the pure functions (selectors, `walk`,
+   `subset`, `Between`, the PNG writer, plan loading). Verified by running the testbed plans
+   from outside the repo with `uvx --from git+https://github.com/viridia/bevy_remote_driver`.
+7. **Users on the package.** `bevy_action_map`: diff its copy's client against this one for
+   anything its plans rely on, then delete `crates/bevy_remote_driver`; its examples gain the
+   setup lines, and its plans import the package and run from git as in item 6. D4 retires,
+   here and in its ledger. `arbor_day` and the testbed: drop the Rust dependency, with the same
+   imports and command; Panoply's plans once it has them. Verified by each repo's plans.
+8. **Publish on PyPI at Bevy 0.20's release**, the compatibility table's first row, superseding
+   D1. Trusted Publishing from a release workflow run on a tag, so no token is stored. The
+   author's account, recovered or new, with 2FA; check `bevy-remote-driver` is free first. Users'
+   commands become `uvx bevy-remote-driver`. *Gate:* Bevy 0.20 released.
+
 ## Decisions
 
 - **D1** Unpublished (`publish = false`). Rust and a Python client together do not ship as a
@@ -77,10 +104,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 
 ## Deferred
 
-- **X1** A Python-only project (D1): the Rust crate goes, and an app enables BRP itself. Past
-  Next items 1–4, the plugin holds only its setup: `RemotePlugin` and `RemoteHttpPlugin` on the
-  port `run.py` sets in the environment, and `FrameTimeDiagnosticsPlugin`. The setup becomes a
-  few lines in an app's `main`, which `writing-plans.md` gives. *Gate:* Next items 1–4 done.
 - **X2** Calling an app's own server methods from a plan. Apps can register methods (DD6), but the
   client has no step for them. First a generic `call` step, which polls while it carries an
   expected `value` (a read) and invokes once without one (a write), matching with `expect`'s
@@ -107,7 +130,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 - **X8** Drags, and plans that record a demo or tutorial (the author, 2026-10-26). A drag is
   `input.click`'s press, a `CursorMoved` each frame along a path, and the release, on the same
   queue in `bevy_remote`, which picking turns into drag start, drag and end; proposed upstream
-  beside `input.click` rather than in the plugin, so X1 holds. bevy#26366 (open, not ours) adds
+  beside `input.click` rather than in the plugin, so Next item 5 holds. bevy#26366 (open, not ours) adds
   `input.hover`, `input.scroll` and `input.drag { from, to, button }`, four events a frame apart:
   move to `from`, press, move to `to`, release. That covers a test's drag and the turntable's
   zoom, but not a path, a held press (Escape mid-drag) or a recording's pacing, which the sketch
@@ -140,7 +163,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   `Camera::world_to_viewport` and adds the viewport's offset. A local point stays on the entity as
   the camera moves, which a pixel offset does not. Whether the click hit it is picking's answer,
   which a plan can check afterwards in the entity's reflected `PickingInteraction`. Belongs
-  upstream beside `input.click`, so X1 holds.
+  upstream beside `input.click`, so Next item 5 holds.
   A place rather than a thing, such as ground to walk to, is the app's to answer (X2), or a
   marker entity it spawns there for the click. *Gate:* the first plan that must click into the
   world. First user: Panoply's actors, whose player clicks an actor or fixture to interact with
