@@ -156,6 +156,10 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   its images: BSN's `Ready` does not wait for a `Handle` a scene holds (DD3.2), and plans wait
   with `seconds` instead. Needs the asset server's load states over BRP, which it does not have.
   *Gate:* a screenshot caught with a texture missing.
+- **X14** Rendered API docs: pdoc, which reads the docstrings as Markdown unchanged, published
+  to GitHub Pages by a workflow, and linked from the README. Read the Docs only once a page per
+  released version matters. Low value while the source is one click from the README. *Gate:*
+  chunk 31 (published on PyPI).
 
 ## Notes
 
