@@ -22,7 +22,9 @@ Installing the client and setting up the app are in the [README](../README.md).
    produced no example named …". Define `run(driver)`, calling the steps as methods. A step that
    names an entity waits for it, so act on what the step needs, not its screen's root. Before a
    screenshot, `present` on what it should show. Give a step whose point is not obvious a
-   comment, and a sequence you repeat a named function.
+   comment, and a sequence you repeat a named function. A sequence several plans repeat becomes
+   a step of the project's own, on a subclass of `Driver` (Project steps, in its docstring);
+   `testbed/plans/_testbed_driver.py` is an example.
 3. **Write JSON only for a flat list of steps that reads as one.** It names `bin` or `example`
    and lists `steps`. `testbed/plans/smoke.json` is an example, and `panel.py` and `typing.py`
    beside it are Python ones.

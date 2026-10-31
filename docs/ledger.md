@@ -39,6 +39,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 30 | Users on the package. `arbor_day` (its C165): the git dependency goes, a `RemoteDriverPlugin` of its own in `src/remote_driver.rs` holds the setup lines for the app and its example, and plans import `from bevy_remote_driver import Between`. `bevy_action_map` (its chunk 204): its copy, `crates/bevy_remote_driver`, is deleted with `docs/proposals/remote-driver.md` and six workspace pins only the copy used; the twelve examples include `examples/common/remote_driver.rs`; the `orbit` and `disasteroids` plans move to `plans/`, losing `ready=True`; its scripts drop the `DR` and `DD` anchors, and `xref.py` flags any left; its X33, X34 and X45 go (X3, X4 and D1 here). The copy's client steps were a subset of this one's, so nothing was ported. `expect` now looks again when its entity despawns between the query and the read, as a rebuilt row's does, rather than failing the step on BRP's "not found". D4 retires. Verified: `arbor_day` clippy clean, 144 tests, its five plans, with the command installed by `uv tool install git+…`; `bevy_action_map` `scripts/verify.sh`, and `disasteroids/pad.py` (16), `disasteroids/rebind.py` (21), `orbit/capture.py` (15), and `orbit/editor.py` (32) with this checkout's `expect` (`uv run --project`; `uvx --from <path>` served a cached build). Its `orbit/saved.py` fails: it reads back across launches what `editor.py` saved, which per-plan settings (chunk 7) prevents; chunk 33. |
 | 33 | A restart step: `driver.restart(seconds=10)` writes `AppExit` (unless `exits` closed the app), fails if the process has not ended within `seconds`, and launches it again with the same port and environment, so the settings directory carries over and a plan checks what the app saved in one plan. The launch moves from `run_plan` into `run.py`'s `App`, which the driver holds; `Driver._attach` forgets the last launch (`exited`, the input frame, the virtual pad, the window). One `app.log` holds both launches, a line with the exit code between them. DD4.3 and `writing-plans.md` (rule 4) say so. Testbed `state.py` ends with a restart that forgets what it wrote. First user: `bevy_action_map`'s `orbit/editor.py`, absorbing `saved.py` (its chunk 205). Verified: ruff clean, 21 unit tests; testbed `panel.py` (8), `smoke.json` (17), `state.py` (17), `typing.py` (9). |
 | 34 | Prose polish pass on the user docs changed since chunk 5: the README, `writing-plans.md`, and the docstrings in `driver.py` and `run.py`. The usage `run.py` prints loses its citation; `exits`, `restart` and `set` say what a plan sees rather than how; rule 4 says why a save is tested in one plan; rule 5's order of preference reads as one. Docs only; ruff clean. |
+| 35 | Project steps: a Python plan sets `DRIVER` to a subclass of `Driver`, and `run_plan` builds that class; `load` refuses anything else, and puts the plan's directory on `sys.path` while the plan loads, so it imports the project's module beside it. A directory run skips `.py` files named with a leading `_`, the convention for that module (`plans/_game_driver.py`). JSON plans keep `Driver`, until one needs a class of its own. `__init__.py` exports `step` and `StepFailed`. `call`, `select` and `wait` lose their underscore and gain docstrings as the stable base for a subclass's steps; `_attach`'s says how to override it. `class Driver`'s docstring has a Project steps paragraph, and `writing-plans.md` rule 2 points to it. Testbed `panel.py` opens the panel with `open_panel`, a step of `testbed/plans/_testbed_driver.py`. No other user's plans called the renamed helpers. Closes X2's second half. Verified: ruff clean, 23 unit tests (two new; the directory test gains a `_` module); testbed `panel.py` (9), `smoke.json` (17), `state.py` (17), `typing.py` (9). |
 
 ## Next
 
@@ -52,20 +53,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    takes the setup lines, deletes the copy, and runs its plans with `bevy-remote-driver`, as
    `arbor_day` did in chunk 30. Panoply is on Bevy 0.20.0, which lacks the input methods the
    package calls. *Gate:* Panoply on Bevy 0.21 or on main past `784b85d`; met 2026-10-30
-   (Panoply's D34, at `784b85d`). Its plans call `driver._call` and `driver._select` directly,
-   and repeat a viewpoint move in eleven plans, so it would take chunk 35 first.
-35. **A plan names its driver class**, so a project adds steps of its own by subclassing
-   `Driver` (Panoply's first: `goto`, which moves the viewpoint and waits until the area has
-   loaded). `run_plan` builds `getattr(module, "DRIVER", Driver)`, refusing a class that is not
-   a subclass; `load` puts the plan's directory on `sys.path` while the plan loads, so a plan
-   imports the project's module beside it (`from panoply_driver import PanoplyDriver`); JSON
-   plans look steps up on the driver's class, not `Driver`. `__init__.py` exports `step`, so a
-   subclass's steps are recorded and reported like the built-in ones. The helpers a subclass
-   builds on become public and documented: `call` (raw BRP), `select`, and `wait` (polling
-   with a timeout and a report); `_attach` is documented as overridable, with `super()`, for
-   per-launch state. A JSON plan naming its class waits for a JSON plan that needs one. A
-   testbed plan whose subclass adds one step. Closes X2's second half (a helper or a step of
-   the app's own).
+   (Panoply's D34, at `784b85d`). Its plans' `driver._call` and `driver._select` become `call`
+   and `select` (chunk 35), and its repeated viewpoint move a step of its own.
 
 ## Decisions
 
@@ -90,8 +79,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   client has no step for them. First a generic `call` step, which polls while it carries an
   expected `value` (a read) and invokes once without one (a write), matching with `expect`'s
   subset; it is planned in `bevy_action_map`'s chunk 149, with that crate's `remote` feature.
-  Then, if raw `call` steps read badly, a Python helper over it or a step of the app's own: a
-  subclass's step, once chunk 35 lands.
+  If raw `call` steps read badly, a project wraps them in a step of its own (chunk 35). The
+  public `call` helper (chunk 35) is the one the step would grow from.
   *Gate:* a plan that needs one of an app's methods, or chunk 149 landing there (port it here).
 - **X3** A virtual pad that says which pad it is. The connection event carries `name`,
   `vendor_id` and `product_id`, and the client fills all three with a pad no vendor table knows,

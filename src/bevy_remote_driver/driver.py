@@ -144,6 +144,13 @@ class Driver:
     JSON plans. A step is an object with one key naming the method, whose value is the first
     argument; the other keys are the remaining arguments by name:
     `{"click": "Menu/Play", "hold": 3}` is `driver.click("Menu/Play", hold=3)`.
+
+    Project steps. A project adds steps of its own by subclassing `Driver` in a module beside its
+    plans, named with a leading underscore so that a directory run does not take it for a plan
+    (`plans/_game_driver.py`). A Python plan imports it and sets `DRIVER` to the subclass; JSON
+    plans use `Driver`. A method decorated with `@step` (`from bevy_remote_driver import step`) is
+    recorded and reported like the built-in steps. Build steps on the built-in ones and on `call`,
+    `select` and `wait`, which stay stable; the underscored methods may change.
     """
 
     def __init__(self, port, out_dir, app=None):
@@ -157,7 +164,9 @@ class Driver:
         self._attach()
 
     def _attach(self):
-        """Starts on a newly launched app: everything known about the last launch is forgotten."""
+        """Starts on a newly launched app: everything known about the last launch is forgotten.
+        Called on each launch, `restart` included; a subclass with state of its own per launch
+        overrides it, calling `super()._attach()` first."""
         # Set by `exits`, so closing does not ask an app that has gone to exit again.
         self.exited = False
         # The frame count read after the last input was sent. The next input waits until the count
@@ -165,7 +174,7 @@ class Driver:
         self._sent_at = None
         # The virtual pad's entity, spawned by the first `pad` step.
         self._gamepad = None
-        windows = self._call(
+        windows = self.call(
             "world.query", {"data": {"components": []}, "filter": {"with": [PRIMARY_WINDOW]}}
         )
         self.window = windows[0]["entity"]
@@ -178,20 +187,20 @@ class Driver:
         spawns, so a match whose name the scene gives has its descendants too."""
 
         def check():
-            matches = self._select(selector)
+            matches = self.select(selector)
             return bool(matches), lambda: self._shown(matches)
 
-        self._wait(check, f"{selector} to match", timeout)
+        self.wait(check, f"{selector} to match", timeout)
 
     @step
     def absent(self, selector, timeout=None):
         """Waits until `selector` matches nothing."""
 
         def check():
-            matches = self._select(selector)
+            matches = self.select(selector)
             return not matches, lambda: self._shown(matches)
 
-        self._wait(check, f"{selector} to match nothing", timeout)
+        self.wait(check, f"{selector} to match nothing", timeout)
 
     @step
     def expect(self, selector, component, value, timeout=None, at=None):
@@ -207,11 +216,11 @@ class Driver:
         path = field_path(at) if at is not None else []
 
         def check():
-            matches = self._select(selector)
+            matches = self.select(selector)
             if len(matches) != 1:
                 return False, lambda: self._shown(matches)
             try:
-                result = self._call(
+                result = self.call(
                     "world.get_components",
                     {"entity": matches[0], "components": [component], "strict": False},
                 )
@@ -228,7 +237,7 @@ class Driver:
             return subset(value, part), json.dumps(part)
 
         where = f"{component} at {at}" if at is not None else component
-        self._wait(check, f"{where} on {selector} to be {described(value)}", timeout)
+        self.wait(check, f"{where} on {selector} to be {described(value)}", timeout)
 
     @step
     def click(self, selector, hold=1):
@@ -277,7 +286,7 @@ class Driver:
         the whole component back as it was.
         """
         entity = self._one(selector)
-        result = self._call(
+        result = self.call(
             "world.get_components",
             {"entity": entity, "components": [component], "strict": False},
         )
@@ -290,7 +299,7 @@ class Driver:
     @step
     def get_resource(self, type_path, at=None):
         """Returns a resource, or the part of it at `at`, as `get` does a component."""
-        return self._part(self._call("world.get_resources", {"resource": type_path})["value"], at)
+        return self._part(self.call("world.get_resources", {"resource": type_path})["value"], at)
 
     @step
     def set(self, selector, component, value, at=None):
@@ -399,7 +408,7 @@ class Driver:
     def screenshot(self, name):
         """Saves a PNG of the primary window as `<name>.png`."""
         # A covered window captures an empty image, so bring it forward and give it a moment.
-        self._call(
+        self.call(
             "world.mutate_components",
             {"entity": self.window, "component": WINDOW, "path": ".focused", "value": True},
         )
@@ -422,20 +431,21 @@ class Driver:
 
     def frame(self):
         """How many frames the app has run, as `FrameTimeDiagnosticsPlugin` counts them."""
-        found = self._call("diagnostics.get", {"paths": ["frame_count"]})["diagnostics"]
+        found = self.call("diagnostics.get", {"paths": ["frame_count"]})["diagnostics"]
         if not found or found[0]["value"] is None:
             raise StepFailed("a frame_count diagnostic, from FrameTimeDiagnosticsPlugin", "none")
         return int(found[0]["value"])
 
     def exit(self):
-        self._call("world.write_message", {"message": APP_EXIT, "value": "Success"})
+        self.call("world.write_message", {"message": APP_EXIT, "value": "Success"})
 
-    def _select(self, selector):
-        """The entities `selector` matches, with BRP's `name_path` filter."""
+    def select(self, selector):
+        """The entities `selector` matches, as BRP entity ids, looking once. An empty list is no
+        match; a step that needs one entity waits with `wait` rather than looking once."""
         path = path_of(selector)
         if not path:
             raise StepFailed("a selector with at least one name", repr(selector))
-        rows = self._call("world.query", {"data": {}, "filter": {"name_path": path}})
+        rows = self.call("world.query", {"data": {}, "filter": {"name_path": path}})
         return [row["entity"] for row in rows]
 
     def _shown(self, entities):
@@ -443,7 +453,7 @@ class Driver:
         when a step fails, since it reads every entity."""
         if not entities:
             return "nothing"
-        rows = self._call("world.query", {"data": {"option": [NAME, CHILD_OF]}})
+        rows = self.call("world.query", {"data": {"option": [NAME, CHILD_OF]}})
         names = {row["entity"]: row["components"].get(NAME) for row in rows}
         parents = {row["entity"]: row["components"].get(CHILD_OF) for row in rows}
 
@@ -462,10 +472,10 @@ class Driver:
         found = []
 
         def check():
-            found[:] = self._select(selector)
+            found[:] = self.select(selector)
             return len(found) == 1, lambda: self._shown(found)
 
-        self._wait(check, f"{selector} to match one entity", None)
+        self.wait(check, f"{selector} to match one entity", None)
         return found[0]
 
     @staticmethod
@@ -477,7 +487,11 @@ class Driver:
             raise StepFailed(f"{at} in the value", f"no {stopped} in {json.dumps(value)}")
         return part
 
-    def _wait(self, check, expected, timeout):
+    def wait(self, check, expected, timeout=None):
+        """Calls `check()` until it passes, failing the step at `timeout` (as for any step; `None`
+        is the default). `check` returns `(passed, found)`; on failure the report gives `expected`,
+        and `found`, or what `found()` returns when it is a function, for a report that costs a
+        query."""
         limit = DEFAULT_TIMEOUT if timeout is None else timeout
         start_frame, start = self.frame(), time.monotonic()
         while True:
@@ -511,7 +525,7 @@ class Driver:
         if self._sent_at is not None:
             self._until(self._sent_at + 1)
         try:
-            landed = self._call(method, params)["frame"]
+            landed = self.call(method, params)["frame"]
         except BrpError as err:
             raise StepFailed(expected, str(err)) from None
         # As if the last event were written the frame before it is read, so the next write follows.
@@ -522,7 +536,7 @@ class Driver:
         if self._gamepad is None:
             # An entity of its own, as `bevy_input` gives a real pad. The connection is what puts
             # `Gamepad` on it, and `_send` leaves a frame for that before the first control arrives.
-            self._gamepad = self._call("world.spawn_entity", {"components": {}})["entity"]
+            self._gamepad = self.call("world.spawn_entity", {"components": {}})["entity"]
             self._send(
                 GAMEPAD_CONNECTION,
                 {"gamepad": self._gamepad, "connection": {"Connected": VIRTUAL_PAD}},
@@ -538,7 +552,7 @@ class Driver:
         if self._sent_at is not None:
             self._until(self._sent_at + 1)
         try:
-            self._call(method, params)
+            self.call(method, params)
         except BrpError as err:
             raise StepFailed(f"{method} to accept {described(params)}", str(err)) from None
         self._sent_at = self.frame()
@@ -560,7 +574,7 @@ class Driver:
                 ),
             )
             response = stream.getresponse()
-            spawned = self._call(
+            spawned = self.call(
                 "world.spawn_entity", {"components": {SCREENSHOT: {"Window": "Primary"}}}
             )["entity"]
             for line in response:
@@ -576,7 +590,9 @@ class Driver:
         finally:
             stream.close()
 
-    def _call(self, method, params=None):
+    def call(self, method, params=None):
+        """BRP's `method` with `params`, returning its result, or raising `BrpError`. It does not
+        wait for the frame after the last input, as steps that write do."""
         body = {"jsonrpc": "2.0", "id": 0, "method": method}
         if params is not None:
             body["params"] = params

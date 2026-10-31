@@ -2,13 +2,14 @@
 
     bevy-remote-driver <plan.json | plan.py | directory>...
 
-A directory stands for every `.py` and `.json` file in it. Plans run one after another; a failed
-plan does not stop the rest, and a summary follows the last report.
+A directory stands for every `.py` and `.json` file in it, except `.py` files whose name starts
+with `_`, which are modules the plans import. Plans run one after another; a failed plan does not
+stop the rest, and a summary follows the last report.
 
 The workspace built is the one that holds the plan, from any working directory; a plan outside
 any Cargo workspace builds the working directory's. A JSON plan names its `bin` or its `example`,
 optionally its `package`, and its `steps`. A Python plan sets `BIN` or `EXAMPLE`, optionally
-`PACKAGE`, and defines `run(driver)`.
+`PACKAGE` and `DRIVER` (a subclass of `Driver`), and defines `run(driver)`.
 """
 
 import importlib.util
@@ -64,22 +65,32 @@ def target_of(bin_name, example):
 
 
 def load(plan_path):
-    """The plan's target, package, features, and a function running its steps on a driver."""
+    """The plan's target, package, features, a function running its steps on a driver, and the
+    driver's class."""
     if not plan_path.is_file():
         raise PlanError(f"no plan at {plan_path}")
     if plan_path.suffix == ".py":
         spec = importlib.util.spec_from_file_location(plan_path.stem, plan_path)
         module = importlib.util.module_from_spec(spec)
+        # So the plan imports the modules beside it, such as a project's driver.
+        folder = str(plan_path.resolve().parent)
+        sys.path.insert(0, folder)
         try:
             spec.loader.exec_module(module)
         except Exception as error:
             # Reported as the plan's alone, so the plans after it still run.
             raise PlanError(f"the plan did not load: {error!r}") from error
+        finally:
+            sys.path.remove(folder)
+        driver = getattr(module, "DRIVER", Driver)
+        if not (isinstance(driver, type) and issubclass(driver, Driver)):
+            raise PlanError(f"`DRIVER` is not a subclass of `Driver`: {driver!r}")
         return (
             target_of(getattr(module, "BIN", None), getattr(module, "EXAMPLE", None)),
             getattr(module, "PACKAGE", None),
             getattr(module, "FEATURES", None),
             module.run,
+            driver,
         )
     plan = json.loads(plan_path.read_text())
     steps = plan["steps"]
@@ -94,7 +105,7 @@ def load(plan_path):
             getattr(driver, name)(entry[name], **options)
 
     target = target_of(plan.get("bin"), plan.get("example"))
-    return target, plan.get("package"), plan.get("features"), run
+    return target, plan.get("package"), plan.get("features"), run, Driver
 
 
 def build(target, package, features, cwd):
@@ -228,11 +239,15 @@ def failed_step(driver, plan_path, error):
 
 def plans_in(paths):
     """The plans named by `paths`, a directory standing for its own `.py` and `.json` files, in name
-    order."""
+    order, less the `.py` modules named with a leading `_`."""
     plans = []
     for path in map(Path, paths):
         if path.is_dir():
-            plans += sorted(p for p in path.iterdir() if p.suffix in (".py", ".json"))
+            plans += sorted(
+                p
+                for p in path.iterdir()
+                if p.suffix == ".json" or (p.suffix == ".py" and not p.name.startswith("_"))
+            )
         else:
             plans.append(path)
     return plans
@@ -280,7 +295,7 @@ def run_plan(plan_path):
     """Runs one plan, prints its report and returns its exit status."""
     cwd = cargo_dir(plan_path)
     try:
-        target, package, features, run = load(plan_path)
+        target, package, features, run, driver_class = load(plan_path)
         out_dir = target_dir(cwd) / "remote-driver" / target[1] / plan_path.stem
     except PlanError as error:
         print(f"could not run: {error}", file=sys.stderr)
@@ -301,7 +316,7 @@ def run_plan(plan_path):
             app = App(binary, package_dir, env, log, log_path, port)
             app.launch()
             try:
-                driver = app.connect(lambda: Driver(port, out_dir, app))
+                driver = app.connect(lambda: driver_class(port, out_dir, app))
                 run(driver)
                 report.append(f"passed: {len(driver.steps)} steps")
             except (StepFailed, BrpError, OSError) as error:

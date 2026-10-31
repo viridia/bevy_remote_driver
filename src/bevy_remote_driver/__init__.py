@@ -3,6 +3,6 @@
 A plan imports what it uses from here: `from bevy_remote_driver import Between`.
 """
 
-from .driver import Between, Driver
+from .driver import Between, Driver, StepFailed, step
 
-__all__ = ["Between", "Driver"]
+__all__ = ["Between", "Driver", "StepFailed", "step"]
