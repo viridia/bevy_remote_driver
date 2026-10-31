@@ -35,8 +35,8 @@ app the driver's own plans run against.
 - Prose follows the "House style" section of `../bevy_action_map/CLAUDE.md`. A user-facing doc
   (README, `writing-plans.md`, docstrings) gets a separate polish pass once its content is
   settled.
-- Users: `arbor_day` and `bevy_action_map` run their plans on the package, installed from git.
-  Panoply still has an old copy of its own (`crates/bevy_remote_driver`), Next item 32.
+- Users: `arbor_day`, `bevy_action_map` and Panoply run their plans on the package, installed
+  from git.
 
 ## Verify
 
