@@ -146,12 +146,18 @@ class Driver:
     `{"click": "Menu/Play", "hold": 3}` is `driver.click("Menu/Play", hold=3)`.
     """
 
-    def __init__(self, port, out_dir):
+    def __init__(self, port, out_dir, app=None):
         self.host = "127.0.0.1"
         self.port = port
         self.out_dir = out_dir
         self.steps = []
         self.screenshots = []
+        # The launcher's handle on the app's process, which `restart` needs.
+        self._app = app
+        self._attach()
+
+    def _attach(self):
+        """Starts on a newly launched app: everything known about the last launch is forgotten."""
         # Set by `exits`, so closing does not ask an app that has gone to exit again.
         self.exited = False
         # The frame count read after the last input was sent. The next input waits until the count
@@ -340,6 +346,22 @@ class Driver:
                 return
             time.sleep(POLL)
         raise StepFailed(f"the app to exit within {seconds} s", "it still answering")
+
+    @step
+    def restart(self, seconds=10):
+        """Closes the app and launches it again, so a plan can check that what the app saved comes
+        back.
+
+        The app is asked to exit as its own quit would, with `AppExit`, unless an `exits` step has
+        already closed it, and has `seconds` to close. The new launch has the same environment and
+        settings directory. Later steps act on it; a virtual pad connects again on the next `pad`
+        step.
+        """
+        if self._app is None:
+            raise StepFailed("an app launched by bevy-remote-driver", "a driver without one")
+        if not self.exited:
+            self.exit()
+        self._app.restart(self._attach, seconds)
 
     @step
     def type(self, text):

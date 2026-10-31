@@ -1,5 +1,6 @@
 """State written past the UI: a resource replaced and restored from a snapshot, one of its fields
-written by reflection path, and a component replaced whole and by one field."""
+written by reflection path, a component replaced whole and by one field, and a restart that
+forgets them."""
 
 BIN = "testbed"
 CLEAR = "bevy_camera::clear_color::ClearColor"
@@ -29,3 +30,8 @@ def run(driver):
     driver.set("Menu/Start", NODE, {"Px": 200.0}, at="width")
     driver.expect("Menu/Start", NODE, {"Px": 200.0}, at="width")
     driver.screenshot("written")
+
+    # A second launch starts over, since the testbed saves nothing.
+    driver.restart()
+    driver.expect("Menu/Typed", TEXT, "")
+    driver.expect("Menu/Start", NODE, "Auto", at="width")

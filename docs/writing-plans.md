@@ -31,6 +31,8 @@ Installing the client and setting up the app are in the [README](../README.md).
    alone. Anything else the app saves, such as files it writes, makes it a different app on its
    second run. Reach a known state through the app's own controls at the start, and end there
    too. A plan that fails halfway leaves its changes behind, so the start is the one that counts.
+   To test what the app saves, change it, then `restart` and check it came back, in one plan:
+   plans run in no set order, and each starts with empty settings.
 5. **Wait for a condition, then frames, then seconds.** A covered window runs at about half speed,
    so a margin in seconds for the app's own logic passes in front and fails behind another window.
    Use `seconds` only for assets still loading after a scene appears, such as images and icons.

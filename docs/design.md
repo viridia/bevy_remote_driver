@@ -189,7 +189,10 @@ runs without compiling or importing anything, which `testbed/plans/smoke.json` i
    settings, starting empty on every run (DR6.5). On macOS `DYLD_FALLBACK_LIBRARY_PATH` names the
    toolchain's libstd and the Bevy dylib, which `dynamic_linking` needs;
 3. polls until the app answers a query for its primary window, which every key step names;
-4. runs the steps;
+4. runs the steps. A `restart` step writes `AppExit`, unless `exits` closed the app, waits for
+   the process to end (failing the step if it does not), and repeats 2 and 3 with the same port
+   and environment, so the settings directory carries over; the log gains a line between the
+   launches, with the exit code;
 5. writes `AppExit`, waits up to three seconds, then kills the process. This runs in a `finally`, so
    an interrupted run closes the app too (DR6.2).
 

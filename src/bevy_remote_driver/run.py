@@ -149,30 +149,71 @@ def environment(binary, package_dir, port, settings_dir):
     return env
 
 
-def connect(app, port, out_dir, log_path):
-    deadline = time.monotonic() + STARTUP_SECONDS
-    while time.monotonic() < deadline:
-        if app.poll() is not None:
-            raise PlanError(
-                f"the app exited during startup with code {app.returncode}; see {log_path}"
-            )
-        try:
-            return Driver(port, out_dir)
-        except (urllib.error.URLError, ConnectionError):
-            time.sleep(0.1)
-    raise PlanError(f"the app did not answer on port {port} in {STARTUP_SECONDS} s; see {log_path}")
+class App:
+    """The plan's app: launched, launched again by the `restart` step, and closed. Every launch has
+    the same port, environment and settings directory, and writes to the same log."""
 
+    def __init__(self, binary, package_dir, env, log, log_path, port):
+        self.binary = binary
+        self.package_dir = package_dir
+        self.env = env
+        self.log = log
+        self.log_path = log_path
+        self.port = port
+        self.process = None
 
-def close(app, driver):
-    if app.poll() is None and driver is not None and not driver.exited:
+    def launch(self):
+        self.process = subprocess.Popen(
+            [self.binary],
+            cwd=self.package_dir,
+            env=self.env,
+            stdout=self.log,
+            stderr=subprocess.STDOUT,
+        )
+
+    def connect(self, attach):
+        """Calls `attach` until the app answers, and returns what it returns."""
+        deadline = time.monotonic() + STARTUP_SECONDS
+        while time.monotonic() < deadline:
+            if self.process.poll() is not None:
+                raise PlanError(
+                    f"the app exited during startup with code {self.process.returncode}; "
+                    f"see {self.log_path}"
+                )
+            try:
+                return attach()
+            except (urllib.error.URLError, ConnectionError):
+                time.sleep(0.1)
+        raise PlanError(
+            f"the app did not answer on port {self.port} in {STARTUP_SECONDS} s; "
+            f"see {self.log_path}"
+        )
+
+    def restart(self, attach, seconds):
+        """For the `restart` step, once the app has been asked to exit: waits up to `seconds` for
+        it to close, launches it again, and calls `attach` once it answers."""
         try:
-            driver.exit()
-            app.wait(EXIT_SECONDS)
-        except (OSError, BrpError, subprocess.TimeoutExpired):
-            pass
-    if app.poll() is None:
-        app.kill()
-        app.wait()
+            self.process.wait(seconds)
+        except subprocess.TimeoutExpired:
+            raise StepFailed(f"the app to exit within {seconds} s", "it still running") from None
+        self.log.write(f"\n--- restarted (exit code {self.process.returncode}) ---\n\n".encode())
+        self.log.flush()
+        self.launch()
+        try:
+            self.connect(attach)
+        except PlanError as error:
+            raise StepFailed("the app to start again", str(error)) from None
+
+    def close(self, driver):
+        if self.process.poll() is None and driver is not None and not driver.exited:
+            try:
+                driver.exit()
+                self.process.wait(EXIT_SECONDS)
+            except (OSError, BrpError, subprocess.TimeoutExpired):
+                pass
+        if self.process.poll() is None:
+            self.process.kill()
+            self.process.wait()
 
 
 def failed_step(driver, plan_path, error):
@@ -257,15 +298,11 @@ def run_plan(plan_path):
         binary, package_dir = build(target, package, features, cwd)
         port = free_port()
         with open(log_path, "wb") as log:
-            app = subprocess.Popen(
-                [binary],
-                cwd=package_dir,
-                env=environment(binary, package_dir, port, settings_dir),
-                stdout=log,
-                stderr=subprocess.STDOUT,
-            )
+            env = environment(binary, package_dir, port, settings_dir)
+            app = App(binary, package_dir, env, log, log_path, port)
+            app.launch()
             try:
-                driver = connect(app, port, out_dir, log_path)
+                driver = app.connect(lambda: Driver(port, out_dir, app))
                 run(driver)
                 report.append(f"passed: {len(driver.steps)} steps")
             except (StepFailed, BrpError, OSError) as error:
@@ -276,14 +313,14 @@ def run_plan(plan_path):
                     report += [f"expected: {error.expected}", f"found: {error.found}"]
                 else:
                     report.append(f"error: {error}")
-                if app.poll() is not None:
-                    report.append(f"the app had exited, with code {app.returncode}")
+                if app.process.poll() is not None:
+                    report.append(f"the app had exited, with code {app.process.returncode}")
             except KeyboardInterrupt:
                 status = 130
                 report.append("interrupted")
                 report += failed_step(driver, plan_path, None)[:1] if driver else []
             finally:
-                close(app, driver)
+                app.close(driver)
     except PlanError as error:
         status = 2
         report.append(f"could not run: {error}")
