@@ -4,10 +4,13 @@
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/viridia/bevy_remote_driver#license)
 [![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-main-lightblue)](https://bevy.org/learn/quick-start/plugin-development/#main-branch-tracking)
 
-End-to-end tests for Bevy apps, driven from outside over the Bevy Remote Protocol (BRP). A plan
-launches the real app, finds entities by name, sends input, waits for the app to react, checks
-components, and takes screenshots. The client is Python, standard library only; the app needs
-only a few lines of setup.
+`bevy-remote-driver` runs end-to-end tests against a Bevy app, driving it from outside over the
+Bevy Remote Protocol (BRP). You write a plan, a short Python script, and the driver launches your
+real app and works through it: it finds entities by name, clicks and types as a player would,
+waits for the app to react, checks the components that result, and takes screenshots along the
+way.
+
+The driver is plain Python with no dependencies, and your app needs only a few lines of setup.
 
 ## A plan
 
@@ -43,8 +46,8 @@ This puts `bevy-remote-driver` on your `PATH`; `uv tool upgrade bevy-remote-driv
 
 ## Setting up the app
 
-1. Enable the `bevy` crate's `bevy_remote` feature. Without it, `Image` has no serialization
-   registered, and a screenshot step panics the app instead of failing the step.
+1. Enable the `bevy` crate's `bevy_remote` feature, which screenshots need. Without it, a
+   screenshot step panics the app.
 
    ```toml
    bevy = { git = "https://github.com/bevyengine/bevy.git", branch = "main", features = ["bevy_remote"] }
@@ -97,15 +100,15 @@ found: "Hi!"
 ```
 
 [Writing and running test plans](https://github.com/viridia/bevy_remote_driver/blob/main/docs/writing-plans.md)
-covers the rest: writing a plan that holds up, running several, and reading a failure. The
-steps' reference is the docstrings of
+covers the rest: writing a plan that holds up, running several, and reading a failure. Each step
+is documented in its docstring in
 [`class Driver`](https://github.com/viridia/bevy_remote_driver/blob/main/src/bevy_remote_driver/driver.py).
 
 ## Compatibility
 
-| bevy-remote-driver | Bevy |
-| --- | --- |
-| main (git) | main, from `784b85d` |
+| bevy-remote-driver | Bevy                 |
+| ------------------ | -------------------- |
+| main (git)         | main, from `784b85d` |
 
 Bevy 0.20 lacks the input methods the driver calls; 0.21 will be the first release with them.
 

@@ -126,9 +126,9 @@ class Driver:
     "Volume"]`, for a name that contains `/`). The last name must match an entity's `Name` exactly;
     each earlier one must match one of its ancestors, in order from the root down, at any depth, so
     unnamed entities in between are skipped. In the list form, a number is a child index:
-    `["Settings", 0]` is the first child of `Settings`. A step that needs one entity waits until exactly one
-    matches, so a plan need not wait for a screen before acting on it; at the timeout it fails,
-    and reports the full paths of what it found.
+    `["Settings", 0]` is the first child of `Settings`. A step that needs one entity waits until
+    exactly one matches, so a plan need not wait for a screen before acting on it; at the timeout
+    it fails, and reports the full paths of what it found.
 
     Timeouts. Every step waits for what it needs rather than looking once: `present`, `absent` and
     `expect` for their condition, the others for their entity. A `timeout` is a dict with
@@ -294,8 +294,9 @@ class Driver:
 
     @step
     def set(self, selector, component, value, at=None):
-        """Writes `component` on the one entity `selector` matches, on its own frame, as an input
-        lands, but past the app's UI: a plan that tests a widget clicks and types instead.
+        """Writes `component` on the one entity `selector` matches, on a frame of its own as an
+        input is, but without going through the app's UI. A plan that tests a widget clicks and
+        types instead.
 
         Without `at`, replaces the whole component with `value`, as BRP's insert does. With `at`,
         writes `value` to one field, given as a reflection path, which differs from `expect`'s in
@@ -331,11 +332,8 @@ class Driver:
 
     @step
     def exits(self, code, seconds=10):
-        """Presses a key that should quit the app, and waits until the app stops answering.
-
-        No release follows, and no frame count is read after the press, since either would be
-        sent to an app that has gone.
-        """
+        """Presses a key that should quit the app, and waits up to `seconds` for the app to stop
+        answering. The key is not released, since the app has gone."""
         self._key(code, {"state": "Pressed"})
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
@@ -352,10 +350,9 @@ class Driver:
         """Closes the app and launches it again, so a plan can check that what the app saved comes
         back.
 
-        The app is asked to exit as its own quit would, with `AppExit`, unless an `exits` step has
-        already closed it, and has `seconds` to close. The new launch has the same environment and
-        settings directory. Later steps act on it; a virtual pad connects again on the next `pad`
-        step.
+        The step sends `AppExit`, as the app's own quit would, and fails if the app has not closed
+        within `seconds`; after `exits`, it only launches. The new launch keeps the settings
+        directory and environment, and a virtual pad connects again on the next `pad` step.
         """
         if self._app is None:
             raise StepFailed("an app launched by bevy-remote-driver", "a driver without one")

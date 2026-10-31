@@ -1,5 +1,4 @@
-"""Runs plans: for each, builds the target, launches it, runs the steps, reports, closes it
-(DD4.3).
+"""Runs plans: for each, builds the target, launches it, runs the steps, closes it and reports.
 
     bevy-remote-driver <plan.json | plan.py | directory>...
 

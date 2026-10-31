@@ -31,17 +31,18 @@ Installing the client and setting up the app are in the [README](../README.md).
    alone. Anything else the app saves, such as files it writes, makes it a different app on its
    second run. Reach a known state through the app's own controls at the start, and end there
    too. A plan that fails halfway leaves its changes behind, so the start is the one that counts.
-   To test what the app saves, change it, then `restart` and check it came back, in one plan:
-   plans run in no set order, and each starts with empty settings.
-5. **Wait for a condition, then frames, then seconds.** A covered window runs at about half speed,
-   so a margin in seconds for the app's own logic passes in front and fails behind another window.
+   To test what the app saves, change it, `restart`, and check it came back, all in one plan:
+   each plan starts with empty settings, so a second plan cannot read what the first saved.
+5. **Wait for a condition; failing that, frames; seconds last.** A covered window runs at about
+   half speed, so a margin in seconds for the app's own logic passes in front and fails behind
+   another window.
    Use `seconds` only for assets still loading after a scene appears, such as images and icons.
 6. **Assert with checks, not screenshots.** `expect`, `absent` and `present` are what make a test
    fail. A screenshot shows that something is drawn, for the person reading the run.
 7. **Match a range where an exact value would only restate the app's arithmetic.** In an `expect`
-   value, `Between(low, high)` (`from bevy_remote_driver import Between`) matches any number in that range,
-   both ends included, so a plan checks a count's order of magnitude without breaking on every
-   change to how it is computed.
+   value, `Between(low, high)` (`from bevy_remote_driver import Between`) matches any number in
+   that range, both ends included, so a plan checks a count's order of magnitude without breaking
+   on every change to how it is computed.
 8. **Drive each kind of widget through the UI once, and set the rest.** A plan about what a
    setting does, not how it is edited, writes it with `set` or `set_resource`: one step, no
    typing to be lost, and no widget to scroll to. Take a snapshot with `get` or `get_resource`
