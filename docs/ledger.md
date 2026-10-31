@@ -51,7 +51,21 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    (`crates/bevy_remote_driver`, forked before chunk 1) and runs `plans/smoke.py` with it. It
    takes the setup lines, deletes the copy, and runs its plans with `bevy-remote-driver`, as
    `arbor_day` did in chunk 30. Panoply is on Bevy 0.20.0, which lacks the input methods the
-   package calls. *Gate:* Panoply on Bevy 0.21 or on main past `784b85d`.
+   package calls. *Gate:* Panoply on Bevy 0.21 or on main past `784b85d`; met 2026-10-30
+   (Panoply's D34, at `784b85d`). Its plans call `driver._call` and `driver._select` directly,
+   and repeat a viewpoint move in eleven plans, so it would take chunk 35 first.
+35. **A plan names its driver class**, so a project adds steps of its own by subclassing
+   `Driver` (Panoply's first: `goto`, which moves the viewpoint and waits until the area has
+   loaded). `run_plan` builds `getattr(module, "DRIVER", Driver)`, refusing a class that is not
+   a subclass; `load` puts the plan's directory on `sys.path` while the plan loads, so a plan
+   imports the project's module beside it (`from panoply_driver import PanoplyDriver`); JSON
+   plans look steps up on the driver's class, not `Driver`. `__init__.py` exports `step`, so a
+   subclass's steps are recorded and reported like the built-in ones. The helpers a subclass
+   builds on become public and documented: `call` (raw BRP), `select`, and `wait` (polling
+   with a timeout and a report); `_attach` is documented as overridable, with `super()`, for
+   per-launch state. A JSON plan naming its class waits for a JSON plan that needs one. A
+   testbed plan whose subclass adds one step. Closes X2's second half (a helper or a step of
+   the app's own).
 
 ## Decisions
 
@@ -76,7 +90,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   client has no step for them. First a generic `call` step, which polls while it carries an
   expected `value` (a read) and invokes once without one (a write), matching with `expect`'s
   subset; it is planned in `bevy_action_map`'s chunk 149, with that crate's `remote` feature.
-  Then, if raw `call` steps read badly, a Python helper over it or a step of the app's own.
+  Then, if raw `call` steps read badly, a Python helper over it or a step of the app's own: a
+  subclass's step, once chunk 35 lands.
   *Gate:* a plan that needs one of an app's methods, or chunk 149 landing there (port it here).
 - **X3** A virtual pad that says which pad it is. The connection event carries `name`,
   `vendor_id` and `product_id`, and the client fills all three with a pad no vendor table knows,
