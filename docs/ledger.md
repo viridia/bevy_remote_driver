@@ -47,6 +47,14 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 
 ## Next
 
+39. **A plan's own assertion fails the plan, not the run** (the author, from Panoply,
+   2026-11-01). `run_plan` catches `StepFailed`, `BrpError` and `OSError` around `run(driver)`;
+   an `assert` in a plan's Python (Panoply's `scroll.py`: `assert not created, ...`) raises
+   `AssertionError`, which escapes, prints a traceback and ends a directory run, so the plans
+   after it never run and no summary is printed. Catch `AssertionError` there as a failed plan:
+   its message as `found:`, and the plan's line from the traceback in place of the failed step.
+   Decide whether any other exception from plan code (a `KeyError` on a BRP reply, say) is the
+   same: the plan failed, the run goes on. A unit test with a plan whose `run` asserts.
 31. **Publish on PyPI at Bevy 0.21's release**, the first with the input methods, and the
    compatibility table's first row, superseding D1. Trusted Publishing from a release workflow
    run on a tag, so no token is stored. The author's account, recovered or new, with 2FA; check
