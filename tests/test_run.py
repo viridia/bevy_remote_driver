@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from bevy_remote_driver import Driver
-from bevy_remote_driver.run import PlanError, load, plans_in
+from bevy_remote_driver.run import PlanError, duration, load, plans_in
 
 
 class Recorder:
@@ -105,6 +105,13 @@ class Loading(unittest.TestCase):
         for name in ("b.py", "a.json", "notes.txt", "_game_driver.py"):
             self.write(name, "")
         self.assertEqual(plans_in([self.dir]), [self.dir / "a.json", self.dir / "b.py"])
+
+
+class Durations(unittest.TestCase):
+    def test_seconds_under_a_minute_minutes_above(self):
+        self.assertEqual(duration(14.34), "14.3 s")
+        self.assertEqual(duration(59.94), "59.9 s")
+        self.assertEqual(duration(221.4), "3 min 41 s")
 
 
 if __name__ == "__main__":

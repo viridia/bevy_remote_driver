@@ -260,20 +260,32 @@ def main(argv=None):
     if not plans:
         print(__doc__.strip(), file=sys.stderr)
         return 2
+    start = time.monotonic()
     results = []
-    for plan_path in plans:
-        status = run_plan(plan_path)
-        results.append((status, plan_path))
+    for number, plan_path in enumerate(plans, 1):
+        place = f" ({number} of {len(plans)})" if len(plans) > 1 else ""
+        status, seconds = run_plan(plan_path, place)
+        results.append((status, seconds, plan_path))
         if status == 130:
             break
-    passed = sum(status == 0 for status, _ in results)
+    passed = sum(status == 0 for status, _, _ in results)
     if len(plans) > 1:
         words = {0: "passed", 1: "FAILED", 2: "could not run", 130: "interrupted"}
-        print(f"\n{passed} of {len(plans)} plans passed")
-        for status, plan_path in results:
-            print(f"{words[status]}: {plan_path}")
+        total = duration(time.monotonic() - start)
+        print(f"\n{passed} of {len(plans)} plans passed in {total}")
+        for status, seconds, plan_path in results:
+            took = f" ({duration(seconds)})" if seconds is not None else ""
+            print(f"{words[status]}{took}: {plan_path}")
     announce(passed, len(plans))
-    return max(status for status, _ in results)
+    return max(status for status, _, _ in results)
+
+
+def duration(seconds):
+    """`seconds` as a person reads it: `14.3 s`, or `3 min 41 s` from a minute up."""
+    if seconds < 60:
+        return f"{seconds:.1f} s"
+    minutes, seconds = divmod(round(seconds), 60)
+    return f"{minutes} min {seconds} s"
 
 
 def announce(passed, total):
@@ -291,15 +303,19 @@ def announce(passed, total):
     )
 
 
-def run_plan(plan_path):
-    """Runs one plan, prints its report and returns its exit status."""
+def run_plan(plan_path, place=""):
+    """Runs one plan, prints its report and returns its exit status and the seconds from the app's
+    launch to its close, or `None` if it never launched. A line naming the plan, and `place`, its
+    place in the run, comes first, so the plan whose window is up can be told."""
+    # Flushed, so it comes out before the build's output, which goes to stderr.
+    print(f"running: {plan_path}{place}", flush=True)
     cwd = cargo_dir(plan_path)
     try:
         target, package, features, run, driver_class = load(plan_path)
         out_dir = target_dir(cwd) / "remote-driver" / target[1] / plan_path.stem
     except PlanError as error:
         print(f"could not run: {error}", file=sys.stderr)
-        return 2
+        return 2, None
     shutil.rmtree(out_dir, ignore_errors=True)
     out_dir.mkdir(parents=True)
     log_path = out_dir / "app.log"
@@ -308,12 +324,14 @@ def run_plan(plan_path):
     report = [f"plan: {plan_path}"]
     status = 0
     driver = None
+    seconds = None
     try:
         binary, package_dir = build(target, package, features, cwd)
         port = free_port()
         with open(log_path, "wb") as log:
             env = environment(binary, package_dir, port, settings_dir)
             app = App(binary, package_dir, env, log, log_path, port)
+            start = time.monotonic()
             app.launch()
             try:
                 driver = app.connect(lambda: driver_class(port, out_dir, app))
@@ -335,10 +353,13 @@ def run_plan(plan_path):
                 report += failed_step(driver, plan_path, None)[:1] if driver else []
             finally:
                 app.close(driver)
+                seconds = time.monotonic() - start
     except PlanError as error:
         status = 2
         report.append(f"could not run: {error}")
 
+    if seconds is not None:
+        report.append(f"time: {duration(seconds)}")
     report.append(f"log: {log_path}")
     for path in driver.screenshots if driver else []:
         report.append(f"screenshot: {path}")
@@ -346,7 +367,7 @@ def run_plan(plan_path):
     (out_dir / "report.txt").write_text(text)
     # Flushed, so each report comes out after its own build's output, which goes to stderr.
     print(text, end="", flush=True)
-    return status
+    return status, seconds
 
 
 if __name__ == "__main__":

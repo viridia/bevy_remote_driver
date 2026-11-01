@@ -70,8 +70,11 @@ To run several plans, name them all, or a directory for every plan in it:
 bevy-remote-driver plans
 ```
 
-They run one after another, each with its own report; a failure does not stop the rest. A summary
-follows, one line per plan.
+They run one after another, each with its own report; a failure does not stop the rest. Each
+starts with a line naming the plan and its place in the run (`running: plans/smoke.py (3 of
+12)`), so you can tell which plan's window is up. A summary follows, one line per plan. Each
+report gives the plan's time, from the app's launch to its close; cargo's `Finished … in` line is
+the build's. The summary gives each plan's time and the whole run's.
 
 When the run is over, on macOS a sound plays (Glass if every plan passed, Basso if not) and a
 notification says how many passed; elsewhere the terminal bell rings. Until then, another plan's
