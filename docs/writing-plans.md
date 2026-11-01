@@ -49,6 +49,9 @@ Installing the client and setting up the app are in the [README](../README.md).
    setting does, not how it is edited, writes it with `set` or `set_resource`: one step, no
    typing to be lost, and no widget to scroll to. Take a snapshot with `get` or `get_resource`
    before a sequence of changes and write it back after, rather than undoing each field.
+9. **Tag a plan that is not a check.** `TAGS = ["manual"]` (in JSON, `"tags": ["manual"]`) keeps
+   a measurement or a diagnostic out of a directory run; it runs when named by its path. Other
+   tags group plans, such as by feature, to run or skip together.
 
 ## Running a plan
 
@@ -75,6 +78,10 @@ starts with a line naming the plan and its place in the run (`running: plans/smo
 12)`), so you can tell which plan's window is up. A summary follows, one line per plan. Each
 report gives the plan's time, from the app's launch to its close; cargo's `Finished … in` line is
 the build's. The summary gives each plan's time and the whole run's.
+
+Tags choose plans. `-t physics` runs only the plans tagged `physics`, `-x slow` skips those
+tagged `slow`, and either can be given more than once. A plan tagged `manual` is left out unless
+named by its path or chosen with `-t manual`. The summary lists the plans skipped.
 
 When the run is over, on macOS a sound plays (Glass if every plan passed, Basso if not) and a
 notification says how many passed; elsewhere the terminal bell rings. Until then, another plan's

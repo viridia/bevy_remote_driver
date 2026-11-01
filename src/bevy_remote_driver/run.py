@@ -1,17 +1,22 @@
 """Runs plans: for each, builds the target, launches it, runs the steps, closes it and reports.
 
-    bevy-remote-driver <plan.json | plan.py | directory>...
+    bevy-remote-driver [-t TAG]... [-x TAG]... <plan.json | plan.py | directory>...
 
 A directory stands for every `.py` and `.json` file in it, except `.py` files whose name starts
 with `_`, which are modules the plans import. Plans run one after another; a failed plan does not
 stop the rest, and a summary follows the last report.
 
+Tags choose plans: `-t TAG` runs only plans with one of the tags given, `-x TAG` skips plans with
+any of them. A plan tagged `manual` runs only when named by path or chosen with `-t manual`, so a
+directory run leaves it out. The summary lists the plans skipped.
+
 The workspace built is the one that holds the plan, from any working directory; a plan outside
 any Cargo workspace builds the working directory's. A JSON plan names its `bin` or its `example`,
-optionally its `package`, and its `steps`. A Python plan sets `BIN` or `EXAMPLE`, optionally
-`PACKAGE` and `DRIVER` (a subclass of `Driver`), and defines `run(driver)`.
+optionally its `package`, `tags` and `steps`. A Python plan sets `BIN` or `EXAMPLE`, optionally
+`PACKAGE`, `TAGS` and `DRIVER` (a subclass of `Driver`), and defines `run(driver)`.
 """
 
+import argparse
 import importlib.util
 import json
 import os
@@ -28,6 +33,8 @@ from .driver import BrpError, Driver, StepFailed
 
 STARTUP_SECONDS = 60
 EXIT_SECONDS = 3
+# The tag of plans a directory run leaves out, such as measurements and diagnostics.
+MANUAL = "manual"
 
 
 class PlanError(Exception):
@@ -64,9 +71,16 @@ def target_of(bin_name, example):
     return ("bin", bin_name) if bin_name is not None else ("example", example)
 
 
+def tags_from(value):
+    """A plan's tags, a list of strings."""
+    if not (isinstance(value, (list, tuple)) and all(isinstance(tag, str) for tag in value)):
+        raise PlanError(f"tags are a list of strings: {value!r}")
+    return list(value)
+
+
 def load(plan_path):
-    """The plan's target, package, features, a function running its steps on a driver, and the
-    driver's class."""
+    """The plan's target, package, features, a function running its steps on a driver, the
+    driver's class, and the plan's tags."""
     if not plan_path.is_file():
         raise PlanError(f"no plan at {plan_path}")
     if plan_path.suffix == ".py":
@@ -91,6 +105,7 @@ def load(plan_path):
             getattr(module, "FEATURES", None),
             module.run,
             driver,
+            tags_from(getattr(module, "TAGS", [])),
         )
     plan = json.loads(plan_path.read_text())
     steps = plan["steps"]
@@ -105,7 +120,8 @@ def load(plan_path):
             getattr(driver, name)(entry[name], **options)
 
     target = target_of(plan.get("bin"), plan.get("example"))
-    return target, plan.get("package"), plan.get("features"), run, Driver
+    tags = tags_from(plan.get("tags", []))
+    return target, plan.get("package"), plan.get("features"), run, Driver, tags
 
 
 def build(target, package, features, cwd):
@@ -253,12 +269,48 @@ def plans_in(paths):
     return plans
 
 
+def chosen(tags, named, only, exclude):
+    """Whether a plan with `tags` runs, given the tags chosen with `-t` (`only`) and `-x`
+    (`exclude`); `named` says whether its path was given, rather than found in a directory."""
+    if only and not set(tags) & set(only):
+        return False
+    if set(tags) & set(exclude):
+        return False
+    return named or MANUAL not in tags or MANUAL in only
+
+
+def tags_of(plan_path):
+    """The plan's tags; none for a plan that does not load, whose error its run reports."""
+    try:
+        return load(plan_path)[-1]
+    except PlanError:
+        return []
+
+
 def main(argv=None):
     """The `bevy-remote-driver` command: runs the plans `argv` names, and returns the exit
     status."""
-    plans = plans_in(sys.argv[1:] if argv is None else argv)
-    if not plans:
+    parser = argparse.ArgumentParser(
+        prog="bevy-remote-driver",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("paths", nargs="*")
+    parser.add_argument("-t", "--tag", action="append", default=[])
+    parser.add_argument("-x", "--exclude", action="append", default=[])
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
+    if not args.paths:
         print(__doc__.strip(), file=sys.stderr)
+        return 2
+    named = {Path(path) for path in args.paths if not Path(path).is_dir()}
+    plans, skipped = [], []
+    for plan_path in plans_in(args.paths):
+        runs = chosen(tags_of(plan_path), plan_path in named, args.tag, args.exclude)
+        (plans if runs else skipped).append(plan_path)
+    if not plans:
+        print("no plan has the tags chosen", file=sys.stderr)
+        for plan_path in skipped:
+            print(f"skipped: {plan_path}", file=sys.stderr)
         return 2
     start = time.monotonic()
     results = []
@@ -269,13 +321,15 @@ def main(argv=None):
         if status == 130:
             break
     passed = sum(status == 0 for status, _, _ in results)
-    if len(plans) > 1:
+    if len(plans) > 1 or skipped:
         words = {0: "passed", 1: "FAILED", 2: "could not run", 130: "interrupted"}
         total = duration(time.monotonic() - start)
         print(f"\n{passed} of {len(plans)} plans passed in {total}")
         for status, seconds, plan_path in results:
             took = f" ({duration(seconds)})" if seconds is not None else ""
             print(f"{words[status]}{took}: {plan_path}")
+        for plan_path in skipped:
+            print(f"skipped: {plan_path}")
     announce(passed, len(plans))
     return max(status for status, _, _ in results)
 
@@ -311,7 +365,7 @@ def run_plan(plan_path, place=""):
     print(f"running: {plan_path}{place}", flush=True)
     cwd = cargo_dir(plan_path)
     try:
-        target, package, features, run, driver_class = load(plan_path)
+        target, package, features, run, driver_class, _ = load(plan_path)
         out_dir = target_dir(cwd) / "remote-driver" / target[1] / plan_path.stem
     except PlanError as error:
         print(f"could not run: {error}", file=sys.stderr)

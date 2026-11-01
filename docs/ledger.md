@@ -43,6 +43,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 35 | Project steps: a Python plan sets `DRIVER` to a subclass of `Driver`, and `run_plan` builds that class; `load` refuses anything else, and puts the plan's directory on `sys.path` while the plan loads, so it imports the project's module beside it. A directory run skips `.py` files named with a leading `_`, the convention for that module (`plans/_game_driver.py`). JSON plans keep `Driver`, until one needs a class of its own. `__init__.py` exports `step` and `StepFailed`. `call`, `select` and `wait` lose their underscore and gain docstrings as the stable base for a subclass's steps; `_attach`'s says how to override it. `class Driver`'s docstring has a Project steps paragraph, and `writing-plans.md` rule 2 points to it. Testbed `panel.py` opens the panel with `open_panel`, a step of `testbed/plans/_testbed_driver.py`. No other user's plans called the renamed helpers. Closes X2's second half. Verified: ruff clean, 23 unit tests (two new; the directory test gains a `_` module); testbed `panel.py` (9), `smoke.json` (17), `state.py` (17), `typing.py` (9). |
 | 36 | Each plan names itself as it starts: `run_plan` prints `running: <plan>`, with its place in a run of several (`(3 of 12)`), before its build, since its report comes only at its end and its window does not say which plan it is (asked by the author from Panoply, where `ablate.py` sat for a minute unnamed). DD4.3 and `writing-plans.md` (Running a plan) say so. Verified: ruff clean, 23 unit tests; testbed `panel.py` (9), `smoke.json` (17), `state.py` (17), `typing.py` (9), each after its line. |
 | 37 | Times: each report gains `time:`, the seconds from the app's launch to its close (not the build, which cargo's `Finished … in` line times, and which the author took for the plan's), and the summary gives each plan's time and the whole run's, builds included. `duration` reads `14.3 s`, or `3 min 41 s` from a minute up. DD4.3 and `writing-plans.md` (Running a plan) say so. Verified: ruff clean, 24 unit tests (one new); testbed `panel.py` (9, 1.7 s), `smoke.json` (17, 2.3 s), `state.py` (17, 2.5 s), `typing.py` (9, 0.8 s). |
+| 38 | Tags: a plan lists them in `TAGS` (Python) or `tags` (JSON), a list of strings; `-t TAG` runs only plans with one of the tags given, `-x TAG` skips plans with any, each repeatable, parsed with `argparse`. `manual` is skipped unless the plan is named by path or `-t manual` is given, so a directory run leaves out measurements and diagnostics (asked by the author for Panoply's `ablate.py` and `perf.py`, in place of moving them to a folder). Every plan is loaded first to read its tags; one that does not load counts as untagged, and its run reports why. The summary lists the plans skipped; with none chosen the command lists them and exits 2. `load` returns the tags last. The usage, DD4.3 and `writing-plans.md` (new rule 9, Running a plan) say so. Verified: ruff clean, 29 unit tests (five new); `-t none` on the testbed skipped all four and exited 2; testbed `panel.py` (9), `smoke.json` (17), `state.py` (17), `typing.py` (9). |
 
 ## Next
 
@@ -166,6 +167,11 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   `scroll.py` timed nothing until it pressed, waited and released instead (chunk 32). Either the
   docstring says so, or `key` waits until the frame BRP returns (likewise `click`'s `hold`).
   Waiting matches what a plan reads `key(hold=…)` to mean. *Gate:* the next chunk here.
+- **X16** Acceptance and diagnostic plans (the author, 2026-10-31): a diagnostic plan runs only
+  when an acceptance plan fails, to narrow down why. Tags (chunk 38) cover running them by hand
+  (`manual`); running them on a failure needs a link from a diagnostic to what it diagnoses, a
+  tag it names (`DIAGNOSES = ["physics"]`, say), run after a failed plan with that tag. *Gate:* a
+  project with diagnostics to link, likely Panoply's `ablate.py` once a perf check fails.
 
 ## Notes
 

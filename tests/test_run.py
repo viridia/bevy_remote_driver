@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from bevy_remote_driver import Driver
-from bevy_remote_driver.run import PlanError, duration, load, plans_in
+from bevy_remote_driver.run import PlanError, chosen, duration, load, plans_in
 
 
 class Recorder:
@@ -33,9 +33,10 @@ class Loading(unittest.TestCase):
     def test_a_json_plan_runs_its_steps(self):
         steps = [{"click": "Menu/Start", "hold": 3}, {"absent": "Panel"}]
         plan = self.write("plan.json", json.dumps({"bin": "app", "steps": steps}))
-        target, package, features, run, driver_class = load(plan)
+        target, package, features, run, driver_class, tags = load(plan)
         self.assertEqual((target, package, features), (("bin", "app"), None, None))
         self.assertIs(driver_class, Driver)
+        self.assertEqual(tags, [])
         driver = Recorder()
         run(driver)
         self.assertEqual(
@@ -46,19 +47,20 @@ class Loading(unittest.TestCase):
     def test_a_json_step_names_exactly_one_step(self):
         steps = [{"click": "A", "absent": "B"}]
         plan = self.write("plan.json", json.dumps({"example": "app", "steps": steps}))
-        _, _, _, run, _ = load(plan)
+        _, _, _, run, _, _ = load(plan)
         with self.assertRaisesRegex(PlanError, "names 2 steps"):
             run(Recorder())
 
     def test_a_python_plan_names_its_target(self):
         plan = self.write(
             "plan.py",
-            'EXAMPLE = "app"\nPACKAGE = "pkg"\nFEATURES = ["f"]\n'
+            'EXAMPLE = "app"\nPACKAGE = "pkg"\nFEATURES = ["f"]\nTAGS = ["slow"]\n'
             'def run(driver):\n    driver.present("Menu")\n',
         )
-        target, package, features, run, driver_class = load(plan)
+        target, package, features, run, driver_class, tags = load(plan)
         self.assertEqual((target, package, features), (("example", "app"), "pkg", ["f"]))
         self.assertIs(driver_class, Driver)
+        self.assertEqual(tags, ["slow"])
         driver = Recorder()
         run(driver)
         self.assertEqual(driver.calls, [("present", ("Menu",), {})])
@@ -73,7 +75,7 @@ class Loading(unittest.TestCase):
             'from _game_driver import GameDriver\nBIN = "app"\nDRIVER = GameDriver\n'
             "def run(driver):\n    pass\n",
         )
-        *_, driver_class = load(plan)
+        *_, driver_class, _ = load(plan)
         self.assertEqual(driver_class.__name__, "GameDriver")
         self.assertTrue(issubclass(driver_class, Driver))
 
@@ -105,6 +107,32 @@ class Loading(unittest.TestCase):
         for name in ("b.py", "a.json", "notes.txt", "_game_driver.py"):
             self.write(name, "")
         self.assertEqual(plans_in([self.dir]), [self.dir / "a.json", self.dir / "b.py"])
+
+    def test_tags_are_a_list_of_strings(self):
+        plan = self.write("plan.json", json.dumps({"bin": "app", "tags": "slow", "steps": []}))
+        with self.assertRaisesRegex(PlanError, "list of strings"):
+            load(plan)
+
+
+class Choosing(unittest.TestCase):
+    def test_every_plan_runs_with_no_tags_chosen(self):
+        self.assertTrue(chosen([], False, [], []))
+        self.assertTrue(chosen(["slow"], False, [], []))
+
+    def test_only_runs_plans_with_one_of_its_tags(self):
+        self.assertTrue(chosen(["physics", "editor"], False, ["editor", "ui"], []))
+        self.assertFalse(chosen(["physics"], False, ["editor"], []))
+        self.assertFalse(chosen([], True, ["editor"], []))
+
+    def test_exclude_skips_plans_with_any_of_its_tags(self):
+        self.assertFalse(chosen(["physics", "slow"], False, [], ["slow"]))
+        self.assertFalse(chosen(["slow"], True, [], ["slow"]))
+
+    def test_manual_runs_only_when_named_or_chosen(self):
+        self.assertFalse(chosen(["manual"], False, [], []))
+        self.assertTrue(chosen(["manual"], True, [], []))
+        self.assertTrue(chosen(["manual"], False, ["manual"], []))
+        self.assertFalse(chosen(["manual", "perf"], False, ["perf"], []))
 
 
 class Durations(unittest.TestCase):

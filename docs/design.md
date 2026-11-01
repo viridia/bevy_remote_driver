@@ -205,10 +205,14 @@ status is 0 on a pass, 1 on a failure and 2 when the plan could not run.
 
 Given several plans, or a directory standing for its `.py` and `.json` files, the command runs
 them in turn, one app at a time, so a project's whole suite takes one command and one approval.
-A failure does not stop the rest; an interruption does. Each plan starts with a line naming it
+A failure does not stop the rest; an interruption does. Tags, which a plan lists in `TAGS` or
+`tags`, choose among them: `-t` runs only plans with one of the tags given, `-x` skips plans with
+any, and `manual` is skipped unless the plan is named by path or `-t manual` is given, so a
+directory run is the project's checks without its measurements; every plan is loaded first to read
+its tags. Each plan starts with a line naming it
 and its place in the run (`3 of 12`), printed before its build: its report comes only at its end,
 and its window does not say which plan it is. A summary of one line per plan, with its time,
-and the whole run's time follows the last report, and the exit status is the worst of the plans'. The run then says it is over,
+the whole run's time, and the plans skipped follows the last report, and the exit status is the worst of the plans'. The run then says it is over,
 once, since a window closing does not tell a developer working elsewhere whether another will come
 forward: on macOS a sound (Glass for a pass, Basso otherwise) and a notification, elsewhere the
 terminal bell.
