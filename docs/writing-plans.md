@@ -39,6 +39,11 @@ Installing the client and setting up the app are in the [README](../README.md).
    half speed, so a margin in seconds for the app's own logic passes in front and fails behind
    another window.
    Use `seconds` only for assets still loading after a scene appears, such as images and icons.
+   Choose the wait by how long what it awaits takes. Slow work whose time varies, such as an
+   asset load or a background task, gets a condition: a margin long enough for its slowest run
+   wastes the rest. Fast work that takes a known few frames, such as an entity's spawn to its
+   first draw, gets a margin of frames, a few times what it takes: a condition per entity costs
+   more to write and is no more reliable.
 6. **Assert with checks, not screenshots.** `expect`, `absent` and `present` are what make a test
    fail. A screenshot shows that something is drawn, for the person reading the run.
 7. **Match a range where an exact value would only restate the app's arithmetic.** In an `expect`
