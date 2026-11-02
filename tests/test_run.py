@@ -2,9 +2,10 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from bevy_remote_driver import Driver
-from bevy_remote_driver.run import PlanError, chosen, duration, load, plans_in
+from bevy_remote_driver.run import PlanError, chosen, duration, failed_step, load, plans_in
 
 
 class Recorder:
@@ -133,6 +134,17 @@ class Choosing(unittest.TestCase):
         self.assertTrue(chosen(["manual"], True, [], []))
         self.assertTrue(chosen(["manual"], False, ["manual"], []))
         self.assertFalse(chosen(["manual", "perf"], False, ["perf"], []))
+
+
+class Failures(unittest.TestCase):
+    def test_a_failure_names_its_step_and_caption(self):
+        driver = SimpleNamespace(steps=["present('A')", "click('B')"], current_caption=None)
+        plan = Path("plan.json")
+        self.assertEqual(failed_step(driver, plan, None), ["step 2: click('B')"])
+        driver.current_caption = "the menu"
+        self.assertEqual(
+            failed_step(driver, plan, None), ["step 2: click('B')", "caption: the menu"]
+        )
 
 
 class Durations(unittest.TestCase):

@@ -1,16 +1,25 @@
 """State written past the UI: a resource replaced and restored from a snapshot, one of its fields
 written by reflection path, a component replaced whole and by one field, and a restart that
-forgets them."""
+forgets them. The window's title names the plan, then its caption, which the restart keeps."""
 
 BIN = "testbed"
 CLEAR = "bevy_camera::clear_color::ClearColor"
 NODE = "bevy_ui::ui_node::Node"
 TEXT = "bevy_ui::widget::text::Text"
+WINDOW = "bevy_window::window::Window"
 RED = {"Srgba": {"red": 0.8, "green": 0.1, "blue": 0.1, "alpha": 1.0}}
+
+
+def title(driver):
+    found = driver.call("world.get_components", {"entity": driver.window, "components": [WINDOW]})
+    return found["components"][WINDOW]["title"]
 
 
 def run(driver):
     driver.present("Menu")  # wait for the scene to finish spawning
+    assert title(driver) == "state", title(driver)
+    driver.caption("written past the UI")
+    assert title(driver) == "state: written past the UI", title(driver)
 
     # A snapshot, a change, and the snapshot put back whole.
     saved = driver.get_resource(CLEAR)
@@ -35,3 +44,4 @@ def run(driver):
     driver.restart()
     driver.expect("Menu/Typed", TEXT, "")
     driver.expect("Menu/Start", NODE, "Auto", at="width")
+    assert title(driver) == "state: written past the UI", title(driver)

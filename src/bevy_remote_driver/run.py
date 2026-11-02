@@ -243,13 +243,16 @@ class App:
 
 
 def failed_step(driver, plan_path, error):
-    """Which step failed: its number and text, and for a Python plan, the line that called it."""
+    """Which step failed: its number and text, for a Python plan the line that called it, and the
+    caption in force."""
     lines = [f"step {len(driver.steps)}: {driver.steps[-1]}" if driver.steps else "before any step"]
     if error is not None and plan_path.suffix == ".py":
         for frame in reversed(traceback.extract_tb(error.__traceback__)):
             if Path(frame.filename).resolve() == plan_path.resolve():
                 lines.append(f"at {plan_path}:{frame.lineno}")
                 break
+    if driver.current_caption is not None:
+        lines.append(f"caption: {driver.current_caption}")
     return lines
 
 

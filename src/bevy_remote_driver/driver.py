@@ -159,6 +159,8 @@ class Driver:
         self.out_dir = out_dir
         self.steps = []
         self.screenshots = []
+        # Set by `caption`, and kept across a `restart`.
+        self.current_caption = None
         # The launcher's handle on the app's process, which `restart` needs.
         self._app = app
         self._attach()
@@ -178,6 +180,7 @@ class Driver:
             "world.query", {"data": {"components": []}, "filter": {"with": [PRIMARY_WINDOW]}}
         )
         self.window = windows[0]["entity"]
+        self._title()
 
     # The steps.
 
@@ -427,6 +430,14 @@ class Driver:
         write_png(path, width, height, data)
         self.screenshots.append(path)
 
+    @step
+    def caption(self, message=None):
+        """Titles the window `<plan>: <message>`, so someone watching can tell which part of the
+        plan is running; a failure's report names the caption too. With no `message`, the title
+        is the plan's name, as at launch."""
+        self.current_caption = message
+        self._title()
+
     # Reading the app.
 
     def frame(self):
@@ -510,6 +521,16 @@ class Driver:
             time.sleep(POLL)
 
     # Writing to the app.
+
+    def _title(self):
+        """Titles the window with the plan's name, and the caption if there is one."""
+        title = self.out_dir.name
+        if self.current_caption is not None:
+            title += f": {self.current_caption}"
+        self.call(
+            "world.mutate_components",
+            {"entity": self.window, "component": WINDOW, "path": ".title", "value": title},
+        )
 
     def _key(self, code, how, logical_key=None, text=None):
         """`input.key` for `code`, with `how` its `hold` or its `state`."""

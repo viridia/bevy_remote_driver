@@ -200,7 +200,8 @@ Everything a run produces goes to `remote-driver/<target>/<plan name>/` under Ca
 directory (from `cargo metadata`, so `CARGO_TARGET_DIR` is respected), emptied first: the log, the
 screenshots, the app's saved settings and `report.txt`. The report is also printed. It gives the
 plan's time, from the launch to the close, not counting the build. A failure gives the step's number and
-text, what it expected, what it found, whether the app had exited, and those paths (DR6.3). The exit
+text, the caption in force, what it expected, what it found, whether the app had exited, and those
+paths (DR6.3). The exit
 status is 0 on a pass, 1 on a failure and 2 when the plan could not run.
 
 Given several plans, or a directory standing for its `.py` and `.json` files, the command runs
@@ -210,8 +211,9 @@ A failure does not stop the rest; an interruption does. Tags, which a plan lists
 any, and `manual` is skipped unless the plan is named by path or `-t manual` is given, so a
 directory run is the project's checks without its measurements; every plan is loaded first to read
 its tags. Each plan starts with a line naming it
-and its place in the run (`3 of 12`), printed before its build: its report comes only at its end,
-and its window does not say which plan it is. A summary of one line per plan, with its time,
+and its place in the run (`3 of 12`), printed before its build, since its report comes only at its
+end. Its window's title names it too, set on each launch, and a `caption` step adds which part of
+the plan is running, so someone watching the window can tell. A summary of one line per plan, with its time,
 the whole run's time, and the plans skipped follows the last report, and the exit status is the worst of the plans'. The run then says it is over,
 once, since a window closing does not tell a developer working elsewhere whether another will come
 forward: on macOS a sound (Glass for a pass, Basso otherwise) and a notification, elsewhere the

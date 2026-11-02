@@ -22,7 +22,9 @@ Installing the client and setting up the app are in the [README](../README.md).
    produced no example named …". Define `run(driver)`, calling the steps as methods. A step that
    names an entity waits for it, so act on what the step needs, not its screen's root. Before a
    screenshot, `present` on what it should show. Give a step whose point is not obvious a
-   comment, and a sequence you repeat a named function. A sequence several plans repeat becomes
+   comment, and a sequence you repeat a named function. In a plan of several parts, start each
+   with `caption`, which adds the part's name to the window's title, so someone watching can tell which part
+   is running; a failure's report names it too. A sequence several plans repeat becomes
    a step of the project's own, on a subclass of `Driver` (Project steps, in its docstring);
    `testbed/plans/_testbed_driver.py` is an example.
 3. **Write JSON only for a flat list of steps that reads as one.** It names `bin` or `example`
@@ -80,7 +82,8 @@ bevy-remote-driver plans
 
 They run one after another, each with its own report; a failure does not stop the rest. Each
 starts with a line naming the plan and its place in the run (`running: plans/smoke.py (3 of
-12)`), so you can tell which plan's window is up. A summary follows, one line per plan. Each
+12)`), and the app's window is titled with the plan's name, so you can tell which plan's window
+is up. A summary follows, one line per plan. Each
 report gives the plan's time, from the app's launch to its close; cargo's `Finished … in` line is
 the build's. The summary gives each plan's time and the whole run's.
 
