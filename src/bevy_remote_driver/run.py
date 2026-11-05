@@ -35,6 +35,8 @@ STARTUP_SECONDS = 60
 EXIT_SECONDS = 3
 # The tag of plans a directory run leaves out, such as measurements and diagnostics.
 MANUAL = "manual"
+# The variable the dynamic linker searches, by `sys.platform`.
+LIBRARY_PATH_VARIABLES = {"darwin": "DYLD_FALLBACK_LIBRARY_PATH", "linux": "LD_LIBRARY_PATH"}
 
 
 class PlanError(Exception):
@@ -164,14 +166,20 @@ def environment(binary, package_dir, port, settings_dir):
     # Bevy's `preferences_dir` honours it only when absolute, which a path under Cargo's target
     # directory is (DR6.5).
     env["BEVY_SETTINGS_DIR"] = str(settings_dir)
-    if sys.platform == "darwin":
+    variable = LIBRARY_PATH_VARIABLES.get(sys.platform)
+    if variable:
         # `dynamic_linking` leaves the binary without an rpath to the toolchain's libstd, or to the
-        # Bevy dylib next to it.
+        # Bevy dylib in `deps/`, which is beside a bin and one level above an example.
         libdir = subprocess.run(
             ["rustc", "--print", "target-libdir"], stdout=subprocess.PIPE, text=True, check=True
         ).stdout.strip()
-        paths = [libdir, str(binary.parent.parent / "deps"), env.get("DYLD_FALLBACK_LIBRARY_PATH")]
-        env["DYLD_FALLBACK_LIBRARY_PATH"] = ":".join(p for p in paths if p)
+        paths = [
+            libdir,
+            str(binary.parent / "deps"),
+            str(binary.parent.parent / "deps"),
+            env.get(variable),
+        ]
+        env[variable] = ":".join(p for p in paths if p)
     return env
 
 

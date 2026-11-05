@@ -46,6 +46,7 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 38 | Tags: a plan lists them in `TAGS` (Python) or `tags` (JSON), a list of strings; `-t TAG` runs only plans with one of the tags given, `-x TAG` skips plans with any, each repeatable, parsed with `argparse`. `manual` is skipped unless the plan is named by path or `-t manual` is given, so a directory run leaves out measurements and diagnostics (asked by the author for Panoply's `ablate.py` and `perf.py`, in place of moving them to a folder). Every plan is loaded first to read its tags; one that does not load counts as untagged, and its run reports why. The summary lists the plans skipped; with none chosen the command lists them and exits 2. `load` returns the tags last. The usage, DD4.3 and `writing-plans.md` (new rule 9, Running a plan) say so. Verified: ruff clean, 29 unit tests (five new); `-t none` on the testbed skipped all four and exited 2; testbed `panel.py` (9), `smoke.json` (17), `state.py` (17), `typing.py` (9). |
 | 40 | `writing-plans.md` rule 5 chooses a wait by the latency of what it awaits: a condition for slow, variable work, a margin of frames for fast, bounded steps (moved from Panoply's agent memory, its PAN14). Docs only. |
 | 41 | The window names the plan (the author, from Panoply, whose PAN8 titled it from a driver subclass): `_attach` sets the primary window's title to the plan's name, the stem its output folder already uses (planned as the path from the run's directory, but no user's plan names repeat across folders, and the output folders would collide first), so a `restart` sets it again. A `caption(message)` step titles it `<plan>: <message>`, kept across a `restart`; `caption()` restores the plan's name. A failure's report names the caption in force (`failed_step`). An app that wants its own title kept waits until one does. DD4.3 and `writing-plans.md` (rule 2, Running a plan) say so. Verified: ruff clean, 30 unit tests (one new); testbed `panel.py` (9), `smoke.json` (17), `state.py` (18, checking the title before and after its restart), `typing.py` (9). |
+| 42 | Plans launch on Linux (the author's new Linux laptop, from Panoply, 2026-11-04): `environment` sets `LD_LIBRARY_PATH` there, as it sets `DYLD_FALLBACK_LIBRARY_PATH` on macOS, and names `deps/` beside the binary as well as above it, since a bin's is beside it and only an example's is above. Without them the app exited with code 127 at startup. DD4.3 and the README's status say so. Verified on Linux: ruff clean, 34 unit tests (four new); testbed `panel.py` (9), `smoke.json` (17), `state.py` (18), `typing.py` (9); Panoply `smoke.py` (80). Not run on macOS. |
 
 ## Next
 
@@ -57,11 +58,20 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    its message as `found:`, and the plan's line from the traceback in place of the failed step.
    Decide whether any other exception from plan code (a `KeyError` on a BRP reply, say) is the
    same: the plan failed, the run goes on. A unit test with a plan whose `run` asserts.
+43. **Windows** (the author, 2026-11-04: the driver is to be recommended to other Bevy
+   developers, and has never run there). Add `"win32": "PATH"` to `LIBRARY_PATH_VARIABLES`, join
+   with `os.pathsep`, and name UTF-8 in `load`'s `read_text` and the report's `write_text`. Add
+   `windows-latest` to CI's unit tests, whose environment tests assume POSIX paths for now. Try
+   the testbed plans on a manually triggered `windows-latest` job; a hosted runner has no real
+   GPU, so it may not manage. The author owns no Windows machine: a developer who uses Windows
+   runs the testbed plans and sends back the output, `report.txt` and `app.log`. Fix what that
+   finds. Landed when the testbed plans pass on real Windows, and the README's status says so.
 31. **Publish on PyPI at Bevy 0.21's release**, the first with the input methods, and the
    compatibility table's first row, superseding D1. Trusted Publishing from a release workflow
    run on a tag, so no token is stored. The author's account, recovered or new, with 2FA; check
    `bevy-remote-driver` is free first. Users' commands become `uvx bevy-remote-driver`. The
-   README gains the PyPI version and Python versions badges. *Gate:* Bevy 0.21 released.
+   README gains the PyPI version and Python versions badges. *Gate:* Bevy 0.21 released, and
+   chunk 43 landed.
 
 ## Decisions
 

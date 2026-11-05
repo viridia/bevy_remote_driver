@@ -3,9 +3,18 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 from bevy_remote_driver import Driver
-from bevy_remote_driver.run import PlanError, chosen, duration, failed_step, load, plans_in
+from bevy_remote_driver.run import (
+    PlanError,
+    chosen,
+    duration,
+    environment,
+    failed_step,
+    load,
+    plans_in,
+)
 
 
 class Recorder:
@@ -152,6 +161,38 @@ class Durations(unittest.TestCase):
         self.assertEqual(duration(14.34), "14.3 s")
         self.assertEqual(duration(59.94), "59.9 s")
         self.assertEqual(duration(221.4), "3 min 41 s")
+
+
+class Environments(unittest.TestCase):
+    def environment(self, platform, binary, inherited=None):
+        rustc = SimpleNamespace(stdout="/toolchain/lib\n")
+        with (
+            mock.patch("sys.platform", platform),
+            mock.patch("subprocess.run", return_value=rustc),
+            mock.patch.dict("os.environ", inherited or {}, clear=True),
+        ):
+            return environment(Path(binary), Path("/package"), 1234, Path("/settings"))
+
+    def test_linux_finds_the_dylibs_beside_a_bin_or_above_an_example(self):
+        for binary in ("/target/debug/app", "/target/debug/examples/app"):
+            paths = self.environment("linux", binary)["LD_LIBRARY_PATH"].split(":")
+            self.assertEqual(paths[0], "/toolchain/lib")
+            self.assertIn(str(Path(binary).parent / "deps"), paths)
+        self.assertIn("/target/debug/deps", paths)
+
+    def test_macos_uses_its_fallback_variable(self):
+        env = self.environment("darwin", "/target/debug/app")
+        self.assertIn("/target/debug/deps", env["DYLD_FALLBACK_LIBRARY_PATH"].split(":"))
+        self.assertNotIn("LD_LIBRARY_PATH", env)
+
+    def test_an_inherited_path_is_kept_last(self):
+        env = self.environment("linux", "/target/debug/app", {"LD_LIBRARY_PATH": "/mine"})
+        self.assertEqual(env["LD_LIBRARY_PATH"].split(":")[-1], "/mine")
+
+    def test_another_platform_sets_no_library_path(self):
+        env = self.environment("win32", "/target/debug/app")
+        self.assertNotIn("LD_LIBRARY_PATH", env)
+        self.assertNotIn("DYLD_FALLBACK_LIBRARY_PATH", env)
 
 
 if __name__ == "__main__":

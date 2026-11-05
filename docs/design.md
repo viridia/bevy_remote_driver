@@ -186,8 +186,9 @@ runs without compiling or importing anything, which `testbed/plans/smoke.json` i
    a log file. `CARGO_MANIFEST_DIR` is set to the package's directory, where Bevy looks for
    `assets/` as it would under `cargo run`. `BEVY_SETTINGS_DIR` is set to `settings/` in the run's
    output directory, so `bevy_settings` reads and writes there instead of the developer's own
-   settings, starting empty on every run (DR6.5). On macOS `DYLD_FALLBACK_LIBRARY_PATH` names the
-   toolchain's libstd and the Bevy dylib, which `dynamic_linking` needs;
+   settings, starting empty on every run (DR6.5). `DYLD_FALLBACK_LIBRARY_PATH` on macOS and
+   `LD_LIBRARY_PATH` on Linux name the toolchain's libstd and the Bevy dylib, which
+   `dynamic_linking` needs;
 3. polls until the app answers a query for its primary window, which every key step names;
 4. runs the steps. A `restart` step writes `AppExit`, unless `exits` closed the app, waits for
    the process to end (failing the step if it does not), and repeats 2 and 3 with the same port

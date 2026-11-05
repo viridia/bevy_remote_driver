@@ -114,7 +114,7 @@ Bevy 0.20 lacks the input methods the driver calls; 0.21 will be the first relea
 
 ## Status
 
-Early, and run only on macOS so far. It tests the examples of
+Early, and run on macOS and Linux so far; Windows is untested. It tests the examples of
 [`bevy_action_map`](https://github.com/viridia/bevy_action_map) and the game Panoply. How it works
 is in [docs/design.md](https://github.com/viridia/bevy_remote_driver/blob/main/docs/design.md),
 and what Bevy took from it in
