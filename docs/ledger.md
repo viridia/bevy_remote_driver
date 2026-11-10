@@ -48,6 +48,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 | 41 | The window names the plan (the author, from Panoply, whose PAN8 titled it from a driver subclass): `_attach` sets the primary window's title to the plan's name, the stem its output folder already uses (planned as the path from the run's directory, but no user's plan names repeat across folders, and the output folders would collide first), so a `restart` sets it again. A `caption(message)` step titles it `<plan>: <message>`, kept across a `restart`; `caption()` restores the plan's name. A failure's report names the caption in force (`failed_step`). An app that wants its own title kept waits until one does. DD4.3 and `writing-plans.md` (rule 2, Running a plan) say so. Verified: ruff clean, 30 unit tests (one new); testbed `panel.py` (9), `smoke.json` (17), `state.py` (18, checking the title before and after its restart), `typing.py` (9). |
 | 42 | Plans launch on Linux (the author's new Linux laptop, from Panoply, 2026-11-04): `environment` sets `LD_LIBRARY_PATH` there, as it sets `DYLD_FALLBACK_LIBRARY_PATH` on macOS, and names `deps/` beside the binary as well as above it, since a bin's is beside it and only an example's is above. Without them the app exited with code 127 at startup. DD4.3 and the README's status say so. Verified on Linux: ruff clean, 34 unit tests (four new); testbed `panel.py` (9), `smoke.json` (17), `state.py` (18), `typing.py` (9); Panoply `smoke.py` (80). Not run on macOS. |
 
+| 44 | Bevy main bumped to `a35f1b5` (D2), with `bevy_action_map`, `bevy_immediate`, `arbor_day` and Panoply. BRP's input methods now answer once their last event is sent, with nothing (bevy#26462), where they answered at once with `{ frame }`; `_input` takes either, keeping the next input on a later frame. So `key(hold=…)` and `click(hold=…)` return after the release, which closes X15. The testbed's `HeldReader` takes the `CowArc` paths `AssetReader` now passes (bevy#26092). DD5.1 follows. Verified: clippy clean on all targets in `testbed/`; testbed `panel.py` (9), `smoke.json` (17), `state.py` (18), `typing.py` (9); Panoply's three plans. |
+
 ## Next
 
 39. **A plan's own assertion fails the plan, not the run** (the author, from Panoply,
@@ -57,7 +59,8 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
    after it never run and no summary is printed. Catch `AssertionError` there as a failed plan:
    its message as `found:`, and the plan's line from the traceback in place of the failed step.
    Decide whether any other exception from plan code (a `KeyError` on a BRP reply, say) is the
-   same: the plan failed, the run goes on. A unit test with a plan whose `run` asserts.
+   same: the plan failed, the run goes on. The client's own can escape too: a `TypeError` reading
+   `input.key`'s new empty reply (chunk 44) ended Panoply's run at its first plan. A unit test with a plan whose `run` asserts.
 43. **Windows** (the author, 2026-11-04: the driver is to be recommended to other Bevy
    developers, and has never run there). Add `"win32": "PATH"` to `LIBRARY_PATH_VARIABLES`, join
    with `os.pathsep`, and name UTF-8 in `load`'s `read_text` and the report's `write_text`. Add
@@ -181,12 +184,6 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
   to GitHub Pages by a workflow, and linked from the README. Read the Docs only once a page per
   released version matters. Low value while the source is one click from the README. *Gate:*
   chunk 31 (published on PyPI).
-- **X15** `key(hold=n)` returns once `input.key` has queued the press and the release, before
-  the release lands, so a step that is not input (a screenshot, `frame`, the plan's own timing)
-  runs during the hold; the next input step does wait, for the frame after the release. Panoply's
-  `scroll.py` timed nothing until it pressed, waited and released instead (chunk 32). Either the
-  docstring says so, or `key` waits until the frame BRP returns (likewise `click`'s `hold`).
-  Waiting matches what a plan reads `key(hold=…)` to mean. *Gate:* the next chunk here.
 - **X16** Acceptance and diagnostic plans (the author, 2026-10-31): a diagnostic plan runs only
   when an acceptance plan fails, to narrow down why. Tags (chunk 38) cover running them by hand
   (`manual`); running them on a failure needs a link from a diagnostic to what it diagnoses, a

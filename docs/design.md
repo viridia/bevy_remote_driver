@@ -256,11 +256,13 @@ A click is BRP's `input.click { entity, hold }` (bevy#26333), which queues three
 each on its own frame: `CursorMoved` to the node's centre, the press, then the release `hold`
 frames later. Picking needs the cursor to have moved before the press, and a press and a release
 in the same frame are indistinguishable from a tap the app may treat differently. A hidden node is
-scrolled into view first (3.3). The method returns `{ frame }`, the frame that reads the release.
+scrolled into view first (3.3). The method answers once the release is sent (bevy#26462); before
+that change it answered at once with `{ frame }`, the frame that reads the release, and the client
+takes either.
 
 `input.key` and `input.type` share its queue, so one plan's inputs land in order, a frame apart.
 Messages the client writes itself, such as a gamepad's (5.3), are not on that queue, so the client
-sends each input on the frame after the one the last input returned, whichever way it was sent.
+sends each input on a frame after the last input's, whichever way it was sent.
 
 ### 5.2 Keys and text
 

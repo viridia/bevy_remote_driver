@@ -542,15 +542,21 @@ class Driver:
         self._input("input.key", params, f"{code} as a key")
 
     def _input(self, method, params, expected):
-        """One of BRP's `input.*` methods, which land each event on a frame of its own."""
+        """One of BRP's `input.*` methods, which land each event on a frame of its own. Bevy since
+        bevy#26462 answers once the last event is sent, with nothing; before it, at once, with the
+        frame that reads the last event."""
         if self._sent_at is not None:
             self._until(self._sent_at + 1)
         try:
-            landed = self.call(method, params)["frame"]
+            reply = self.call(method, params)
         except BrpError as err:
             raise StepFailed(expected, str(err)) from None
-        # As if the last event were written the frame before it is read, so the next write follows.
-        self._sent_at = landed - 1
+        if isinstance(reply, dict) and "frame" in reply:
+            # As if the last event were written the frame before it is read, so the next write
+            # follows.
+            self._sent_at = reply["frame"] - 1
+        else:
+            self._sent_at = self.frame()
 
     def _pad(self, control, value):
         """One raw gamepad message, connecting the pad first if this is the plan's first."""

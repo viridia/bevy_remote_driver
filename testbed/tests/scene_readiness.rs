@@ -14,7 +14,7 @@ use bevy::asset::io::memory::{Dir, MemoryAssetReader};
 use bevy::asset::io::{
     AssetReader, AssetReaderError, AssetSourceBuilder, AssetSourceId, PathStream, Reader,
 };
-use bevy::asset::{AssetLoader, LoadContext};
+use bevy::asset::{AssetLoader, CowArc, LoadContext};
 use bevy::ecs::schedule::Stepping;
 use bevy::prelude::*;
 use bevy::scene::{ScenePatch, ScenePlugin};
@@ -74,14 +74,20 @@ struct HeldReader {
 }
 
 impl AssetReader for HeldReader {
-    async fn read<'a>(&'a self, path: &'a Path) -> Result<impl Reader + 'a, AssetReaderError> {
+    async fn read<'a>(
+        &'a self,
+        path: CowArc<'a, Path>,
+    ) -> Result<impl Reader + 'a, AssetReaderError> {
         while !self.released.load(Ordering::Acquire) {
             yield_now().await;
         }
         self.inner.read(path).await
     }
 
-    async fn read_meta<'a>(&'a self, path: &'a Path) -> Result<impl Reader + 'a, AssetReaderError> {
+    async fn read_meta<'a>(
+        &'a self,
+        path: CowArc<'a, Path>,
+    ) -> Result<impl Reader + 'a, AssetReaderError> {
         self.inner.read_meta(path).await
     }
 
