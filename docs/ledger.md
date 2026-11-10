@@ -64,11 +64,15 @@ sections. Decisions here are `D<n>`, deferrals `X<n>`.
 43. **Windows** (the author, 2026-11-04: the driver is to be recommended to other Bevy
    developers, and has never run there). Add `"win32": "PATH"` to `LIBRARY_PATH_VARIABLES`, join
    with `os.pathsep`, and name UTF-8 in `load`'s `read_text` and the report's `write_text`. Add
-   `windows-latest` to CI's unit tests, whose environment tests assume POSIX paths for now. Try
-   the testbed plans on a manually triggered `windows-latest` job; a hosted runner has no real
-   GPU, so it may not manage. The author owns no Windows machine: a developer who uses Windows
-   runs the testbed plans and sends back the output, `report.txt` and `app.log`. Fix what that
-   finds. Landed when the testbed plans pass on real Windows, and the README's status says so.
+   `windows-latest` to CI's unit tests, whose environment tests assume POSIX paths for now. The
+   README's status names Windows.
+   Tried on 2026-11-10, before any of these changes, by a developer on Windows (Intel UHD 730,
+   Vulkan), at chunk 41 or later (`state.py`'s 18 steps): the testbed's `panel.py` (9), `smoke.json` (17), `state.py` (18, its
+   restart included) and `typing.py` (9) passed, with clean logs and correct screenshots. So the
+   `dynamic_linking` testbed launched without `PATH` set, for a reason not found; the change stays
+   for other setups. Every report was ASCII, so UTF-8 is untested. That run stands as the
+   verification; a CI job running the plans is no longer needed. If convenient, a second run after
+   the changes, and one with a plan that fails, so a failure's report is written there.
 31. **Publish on PyPI at Bevy 0.21's release**, the first with the input methods, and the
    compatibility table's first row, superseding D1. Trusted Publishing from a release workflow
    run on a tag, so no token is stored. The author's account, recovered or new, with 2FA; check
